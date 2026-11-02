@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EconSimulador - Layout Planilha</title>
+    <style>
+        /* =========================================
+           ESTÉTICA ECONPESSOAL (Dark Mode Arredondado)
+           ========================================= */
+        :root {
+            --bg-dark: #121212;
+            --panel-bg: #1e1e1e;
+            --text-main: #ffffff;
+            --text-muted: #888888;
+            --accent-green: #00e676;
+            --accent-green-bg: rgba(0, 230, 118, 0.15);
+            --accent-red: #ff5252;
+            --accent-red-bg: rgba(255, 82, 82, 0.1);
+            --border-color: #333333;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            margin: 0;
+            padding: 20px;
+        }
+
+        /* Cabeçalho Superior */
+        .header-panel {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: var(--panel-bg);
+            padding: 15px 20px;
+            border-radius: 12px;
+            border-left: 5px solid #2979ff;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+        }
+
+        button {
+            background-color: var(--accent-green);
+            color: black;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        button:hover { opacity: 0.8; }
+        .btn-outline { background-color: transparent; border: 1px solid var(--text-muted); color: var(--text-main); }
+        
+        .btn-add-cycle { 
+            background-color: transparent; 
+            border: 2px dashed var(--text-muted); 
+            color: var(--text-muted); 
+            height: 100%; 
+            min-height: 250px; 
+            width: 300px; 
+            border-radius: 12px; 
+            font-size: 1.1em; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            cursor: pointer; 
+            transition: 0.3s; 
+        }
+        .btn-add-cycle:hover { border-color: var(--accent-green); color: var(--accent-green); background-color: var(--accent-green-bg); }
+
+        /* Board Horizontal */
+        .board {
+            display: flex;
+            gap: 20px;
+            overflow-x: auto;
+            padding-bottom: 20px;
+            align-items: flex-start;
+            min-height: 60vh;
+        }
+
+        /* Card Principal do Ciclo */
+        .cycle-wrapper {
+            position: relative;
+            width: 400px; 
+            flex-shrink: 0;
+            background-color: var(--panel-bg);
+            border-radius: 12px; 
+            border: 1px solid var(--border-color);
+            overflow: hidden; 
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .cycle-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: #252525;
+            padding: 12px 15px;
+            border-bottom: 1px solid var(--border-color);
+            gap: 15px; 
+        }
+
+        .cycle-header input {
+            font-weight: bold;
+            font-size: 1.1em;
+            flex: 1; 
+            color: var(--text-main);
+            text-align: left;
+            padding: 4px;
+        }
+
+        .btn-del-cycle {
+            background: var(--accent-red-bg);
+            color: var(--accent-red);
+            border: none;
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-size: 0.85em;
+            cursor: pointer;
+            flex-shrink: 0; 
+        }
+        .btn-del-cycle:hover { background: var(--accent-red); color: white; }
+
+        /* Resumo do Ciclo */
+        .cycle-summary-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            background-color: #1a1a1a;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        /* Tabelas Internas */
+        .sub-table-card {
+            margin: 15px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+            background-color: rgba(255, 255, 255, 0.02);
+        }
+
+        .sub-table-header {
+            padding: 10px 12px;
+            font-size: 0.8em;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .header-income { background-color: var(--accent-green-bg); color: var(--accent-green); border-bottom: 1px solid var(--accent-green); }
+        .header-expense { background-color: var(--accent-red-bg); color: var(--accent-red); border-bottom: 1px solid var(--accent-red); }
+
+        .excel-table { width: 100%; border-collapse: collapse; font-size: 0.95em; }
+        .excel-table th, .excel-table td { border-bottom: 1px solid var(--border-color); padding: 8px 10px; }
+        .excel-table tr:last-child td { border-bottom: none; }
+
+        /* Inputs camuflados genéricos */
+        input {
+            background: transparent;
+            border: none;
+            color: inherit;
+            font-family: inherit;
+            font-size: inherit;
+            font-weight: inherit;
+            outline: none;
+            border-radius: 4px;
+        }
+        input:focus { background-color: rgba(255,255,255,0.05); }
+        
+        /* Correção: Opacidade 1 para não acinzentar as somas */
+        input:read-only { opacity: 1; cursor: default; }
+
+        /* Linhas Dinâmicas */
+        .row-income, .row-expense, .row-child-expense { transition: 0.2s; }
+        .row-income:hover { background-color: rgba(255, 255, 255, 0.05); }
+        .row-expense:hover, .row-child-expense:hover { background-color: rgba(255, 255, 255, 0.04); }
+
+        /* Estética do Sub-gasto (Tree View) */
+        .tree-line {
+            position: absolute;
+            left: 16px;
+            top: -15px;
+            height: 35px;
+            width: 14px;
+            border-left: 2px solid var(--border-color);
+            border-bottom: 2px solid var(--border-color);
+            border-bottom-left-radius: 6px;
+            pointer-events: none;
+        }
+        .child-input { 
+            padding: 8px 5px 8px 75px !important; 
+            font-size: 0.9em; 
+            color: var(--text-muted) !important; 
+        }
+
+        /* Botões Base e Adição */
+        .btn-add-expense, .btn-add-income { 
+            width: 100%; text-align: center; font-size: 0.85em; cursor: pointer; padding: 10px 0; background-color: transparent; transition: 0.2s; 
+        }
+        .btn-add-expense { color: var(--text-muted); }
+        .btn-add-expense:hover { background-color: rgba(255,255,255,0.05); color: white; }
+        .btn-add-income { color: var(--accent-green); opacity: 0.8; }
+        .btn-add-income:hover { background-color: var(--accent-green-bg); opacity: 1; }
+
+        /* Alinhamento de Células */
+        .td-name { position: relative; padding: 5px !important; }
+        
+        /* Aumentado o espaço à direita para acomodar o toggle sem encavalar */
+        .td-value { width: 105px; padding-right: 28px !important; position: relative; }
+        .td-value input { width: 100%; text-align: right !important; font-weight: bold; }
+        
+        .row-expense .td-value input, .row-child-expense .td-value input { color: var(--accent-red); }
+        .row-income .td-value input { color: var(--accent-green); }
+
+        /* Espaçamentos ajustados agora que o toggle foi para o outro lado */
+        .income-input { width: 100%; box-sizing: border-box; padding: 8px 5px 8px 75px !important; text-align: left !important; color: var(--text-main); }
+        .expense-input { width: 100%; box-sizing: border-box; padding: 8px 5px 8px 90px !important; text-align: left !important; color: var(--text-main); }
+
+        /* Ícone Toggle Movido para a direita dos valores */
+        .toggle-btn {
+            position: absolute;
+            right: 4px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: var(--text-muted);
+            font-size: 0.7em;
+            border-radius: 4px;
+            transition: 0.2s;
+            z-index: 5;
+        }
+        .toggle-btn:hover { background-color: rgba(255,255,255,0.1); color: var(--text-main); }
+
+        /* Ações Flutuantes na Linha */
+        .row-actions {
+            position: absolute; top: 50%; transform: translateY(-50%); display: flex; align-items: center; gap: 3px; opacity: 0; transition: 0.2s; z-index: 10;
+        }
+        .row-expense:hover .row-actions, .row-income:hover .row-actions, .row-child-expense:hover .row-actions { opacity: 1; }
+        
+        /* Posições das ações alinhadas à esquerda */
+        .actions-income { left: 5px; }
+        .actions-expense { left: 5px; } 
+        .actions-child { left: 38px; }
+
+        .arrows-stack { display: flex; flex-direction: column; gap: 2px; }
+
+        .btn-action { background: rgba(255, 255, 255, 0.05); border: none; cursor: pointer; border-radius: 4px; color: var(--text-muted); display: flex; align-items: center; justify-content: center; transition: 0.2s; }
+        .btn-action:hover { background-color: rgba(255, 255, 255, 0.2); color: white; }
+        .btn-del-row { padding: 6px; font-size: 0.9em; }
+        .btn-del-row:hover { background-color: var(--accent-red); color: white; }
+        .btn-arrow { padding: 2px 4px; font-size: 0.55em; line-height: 1; }
+        .btn-add-child { padding: 4px 6px; font-size: 1em; }
+        .btn-add-child:hover { background-color: var(--accent-red); color: white; }
+
+        /* Rodapé de Saldo */
+        .remainder-container { 
+            text-align: center; padding: 15px; background-color: #1a1a1a; margin-top: auto; border-top: 1px solid var(--border-color);
+        }
+        .remainder-value { font-size: 1.2em; font-weight: bold; margin-bottom: 8px; }
+        .text-green { color: var(--accent-green); }
+        .text-red { color: var(--accent-red); }
+
+        .carryover-toggle { display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 0.8em; color: var(--text-muted); cursor: pointer; }
+        .carryover-toggle input[type="checkbox"] { width: 14px; height: 14px; cursor: pointer; }
+        .carryover-toggle:hover { color: var(--text-main); }
+
+    </style>
+</head>
+<body>
+
+    <div class="header-panel">
+        <div>
+            <h1 style="margin:0; font-size: 1.5em; color: #2979ff;">EconSimulador</h1>
+            <input type="text" id="main-title" value="Contas a pagar (Até 27/03/2026)" style="font-size: 1em; color: var(--text-muted); margin-top: 5px; border-bottom: 1px dashed #555; display: inline-block; width: 300px;" onclick="this.select()" onchange="updateMainTitle(this.value)">
+        </div>
+        <div>
+            <button class="btn-outline" onclick="resetSimulator()">🧹 Limpar Planilha</button>
+        </div>
+    </div>
+
+    <div class="board" id="board">
+        </div>
+
+    <script>
+        function generateId() { return Math.random().toString(36).substr(2, 9); }
+
+        let defaultState = {
+            mainTitle: "Simulação de Longo Prazo",
+            cycles: [
+                { 
+                    id: generateId(), 
+                    title: "Mês 1", 
+                    carryOver: true, 
+                    incomes: [{ id: generateId(), name: "Renda Base", amount: 2500 }], 
+                    expenses: [{ id: generateId(), name: "Aluguel", amount: 1000, children: [], isExpanded: true }] 
+                }
+            ]
+        };
+
+        let appState = JSON.parse(localStorage.getItem('econSim_excel')) || defaultState;
+
+        function init() {
+            document.getElementById('main-title').value = appState.mainTitle;
+            calculateAndRender();
+        }
+
+        function calculateAndRender() {
+            let previousRemainder = 0;
+
+            appState.cycles.forEach(cycle => {
+                if (!cycle.incomes) cycle.incomes = [];
+                if (cycle.carryOver === undefined) cycle.carryOver = true; 
+
+                cycle.totalIncomes = cycle.incomes.reduce((sum, inc) => sum + inc.amount, 0);
+                cycle.available = previousRemainder + cycle.totalIncomes;
+                
+                cycle.expenses.forEach(exp => {
+                    if (!exp.children) exp.children = [];
+                    if (exp.isExpanded === undefined) exp.isExpanded = true;
+                    
+                    if (exp.children.length > 0) {
+                        exp.amount = exp.children.reduce((childSum, child) => childSum + child.amount, 0);
+                    }
+                });
+
+                cycle.totalExpenses = cycle.expenses.reduce((sum, exp) => sum + exp.amount, 0);
+                cycle.remainder = cycle.available - cycle.totalExpenses;
+                
+                previousRemainder = cycle.carryOver ? cycle.remainder : 0;
+            });
+
+            renderBoard();
+            localStorage.setItem('econSim_excel', JSON.stringify(appState));
+        }
+
+        function renderBoard() {
+            const board = document.getElementById('board');
+            board.innerHTML = '';
+
+            appState.cycles.forEach(cycle => {
+                let incomesHtml = '';
+                let expensesHtml = '';
+                
+                cycle.incomes.forEach((inc) => {
+                    incomesHtml += `
+                        <tr class="row-income">
+                            <td class="td-name">
+                                <div class="row-actions actions-income">
+                                    <button class="btn-action btn-del-row" onclick="delIncome('${cycle.id}', '${inc.id}')" title="Excluir">🗑️</button>
+                                    <div class="arrows-stack">
+                                        <button class="btn-action btn-arrow" onclick="moveIncome('${cycle.id}', '${inc.id}', 'up')">▲</button>
+                                        <button class="btn-action btn-arrow" onclick="moveIncome('${cycle.id}', '${inc.id}', 'down')">▼</button>
+                                    </div>
+                                </div>
+                                <input type="text" class="income-input" placeholder="Nova Entrada" value="${inc.name}" onclick="this.select()" onchange="editIncomeName('${cycle.id}', '${inc.id}', this.value)">
+                            </td>
+                            <td class="td-value"><input type="number" step="0.01" value="${inc.amount.toFixed(2)}" onclick="this.select()" onchange="editIncomeAmount('${cycle.id}', '${inc.id}', this.value)"></td>
+                        </tr>
+                    `;
+                });
+                
+                cycle.expenses.forEach((exp) => {
+                    const hasChildren = exp.children && exp.children.length > 0;
+                    const readonlyAttr = hasChildren ? 'readonly title="Soma automática dos sub-gastos"' : '';
+                    
+                    let toggleIconHtml = '';
+                    if (hasChildren) {
+                        const icon = exp.isExpanded ? '▼' : '▶';
+                        toggleIconHtml = `<div class="toggle-btn" onclick="toggleExpand('${cycle.id}', '${exp.id}')">${icon}</div>`;
+                    }
+
+                    expensesHtml += `
+                        <tr class="row-expense">
+                            <td class="td-name">
+                                <div class="row-actions actions-expense">
+                                    <button class="btn-action btn-del-row" onclick="delExpense('${cycle.id}', '${exp.id}')" title="Excluir Gasto">🗑️</button>
+                                    <div class="arrows-stack">
+                                        <button class="btn-action btn-arrow" onclick="moveExpense('${cycle.id}', '${exp.id}', 'up')">▲</button>
+                                        <button class="btn-action btn-arrow" onclick="moveExpense('${cycle.id}', '${exp.id}', 'down')">▼</button>
+                                    </div>
+                                    <button class="btn-action btn-add-child" onclick="addChildExpense('${cycle.id}', '${exp.id}')" title="Criar Sub-gasto">↳</button>
+                                </div>
+                                <input type="text" class="expense-input" placeholder="Novo Gasto" value="${exp.name}" onclick="this.select()" onchange="editExpenseName('${cycle.id}', '${exp.id}', this.value)">
+                            </td>
+                            <td class="td-value">
+                                <input type="number" step="0.01" value="${exp.amount.toFixed(2)}" ${readonlyAttr} onclick="this.select()" onchange="editExpenseAmount('${cycle.id}', '${exp.id}', this.value)">
+                                ${toggleIconHtml}
+                            </td>
+                        </tr>
+                    `;
+
+                    if (hasChildren && exp.isExpanded) {
+                        exp.children.forEach(child => {
+                            expensesHtml += `
+                                <tr class="row-child-expense">
+                                    <td class="td-name">
+                                        <div class="tree-line"></div>
+                                        <div class="row-actions actions-child">
+                                            <button class="btn-action btn-del-row" onclick="delChildExpense('${cycle.id}', '${exp.id}', '${child.id}')" title="Excluir Sub-gasto">🗑️</button>
+                                        </div>
+                                        <input type="text" class="expense-input child-input" placeholder="Sub-gasto" value="${child.name}" onclick="this.select()" onchange="editChildExpenseName('${cycle.id}', '${exp.id}', '${child.id}', this.value)">
+                                    </td>
+                                    <td class="td-value">
+                                        <input type="number" step="0.01" value="${child.amount.toFixed(2)}" onclick="this.select()" onchange="editChildExpenseAmount('${cycle.id}', '${exp.id}', '${child.id}', this.value)">
+                                    </td>
+                                </tr>
+                            `;
+                        });
+                    }
+                });
+
+                const remainderClass = cycle.remainder >= 0 ? 'text-green' : 'text-red';
+                const isChecked = cycle.carryOver ? 'checked' : '';
+                
+                board.innerHTML += `
+                    <div class="cycle-wrapper">
+                        <div class="cycle-header">
+                            <input type="text" value="${cycle.title}" onclick="this.select()" onchange="editCycleTitle('${cycle.id}', this.value)">
+                            <button class="btn-del-cycle" onclick="delCycle('${cycle.id}')" title="Apagar Coluna Inteira">🗑️ Ciclo</button>
+                        </div>
+                        
+                        <div class="cycle-summary-top">
+                            <span style="color: var(--text-muted); font-size: 0.9em; text-transform: uppercase; font-weight: bold;">Disponível Total:</span>
+                            <span style="color: var(--accent-green); font-size: 1.2em; font-weight: bold;">R$ ${cycle.available.toFixed(2)}</span>
+                        </div>
+
+                        <div class="sub-table-card">
+                            <div class="sub-table-header header-income">
+                                <span>⬇️ Entradas</span>
+                                <span>R$ ${cycle.totalIncomes.toFixed(2)}</span>
+                            </div>
+                            <table class="excel-table">
+                                <tbody>
+                                    ${incomesHtml}
+                                    <tr>
+                                        <td colspan="2" class="btn-add-income" onclick="addIncome('${cycle.id}')">+ Adicionar Entrada</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="sub-table-card">
+                            <div class="sub-table-header header-expense">
+                                <span>⬆️ Saídas</span>
+                                <span>R$ ${cycle.totalExpenses.toFixed(2)}</span>
+                            </div>
+                            <table class="excel-table">
+                                <tbody>
+                                    ${expensesHtml}
+                                    <tr>
+                                        <td colspan="2" class="btn-add-expense" onclick="addExpense('${cycle.id}')">+ Adicionar Saída</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="remainder-container">
+                            <div class="remainder-value ${remainderClass}">Sobra Final: R$ ${cycle.remainder.toFixed(2)}</div>
+                            <label class="carryover-toggle">
+                                <input type="checkbox" ${isChecked} onchange="toggleCarryOver('${cycle.id}', this.checked)">
+                                Considerar saldo para o próximo ciclo
+                            </label>
+                        </div>
+                    </div>
+                `;
+            });
+
+            board.innerHTML += `
+                <div class="cycle-wrapper" style="background: transparent; border: none; box-shadow: none; width: 300px; display: block;">
+                    <button class="btn-add-cycle" onclick="addCycle()">+ Novo Ciclo (Próximo Mês)</button>
+                </div>
+            `;
+        }
+
+        window.updateMainTitle = (val) => { appState.mainTitle = val; calculateAndRender(); };
+        window.editCycleTitle = (cId, val) => { appState.cycles.find(c => c.id === cId).title = val; calculateAndRender(); };
+        
+        window.toggleCarryOver = (cId, isChecked) => {
+            appState.cycles.find(c => c.id === cId).carryOver = isChecked;
+            calculateAndRender(); 
+        };
+
+        window.toggleExpand = (cId, pId) => {
+            const exp = appState.cycles.find(c => c.id === cId).expenses.find(e => e.id === pId);
+            exp.isExpanded = !exp.isExpanded;
+            calculateAndRender(); 
+        };
+
+        window.editIncomeName = (cId, iId, val) => { appState.cycles.find(c => c.id === cId).incomes.find(i => i.id === iId).name = val; calculateAndRender(); };
+        window.editIncomeAmount = (cId, iId, val) => { appState.cycles.find(c => c.id === cId).incomes.find(i => i.id === iId).amount = parseFloat(val) || 0; calculateAndRender(); };
+        window.addIncome = (cId) => { appState.cycles.find(c => c.id === cId).incomes.push({ id: generateId(), name: "", amount: 0 }); calculateAndRender(); };
+        window.delIncome = (cId, iId) => { const cycle = appState.cycles.find(c => c.id === cId); cycle.incomes = cycle.incomes.filter(i => i.id !== iId); calculateAndRender(); };
+        window.moveIncome = (cId, iId, direction) => {
+            const cycle = appState.cycles.find(c => c.id === cId);
+            const idx = cycle.incomes.findIndex(i => i.id === iId);
+            if (direction === 'up' && idx > 0) [cycle.incomes[idx - 1], cycle.incomes[idx]] = [cycle.incomes[idx], cycle.incomes[idx - 1]];
+            else if (direction === 'down' && idx < cycle.incomes.length - 1) [cycle.incomes[idx], cycle.incomes[idx + 1]] = [cycle.incomes[idx + 1], cycle.incomes[idx]];
+            calculateAndRender();
+        };
+
+        window.editExpenseName = (cId, eId, val) => { appState.cycles.find(c => c.id === cId).expenses.find(e => e.id === eId).name = val; calculateAndRender(); };
+        window.editExpenseAmount = (cId, eId, val) => { 
+            const exp = appState.cycles.find(c => c.id === cId).expenses.find(e => e.id === eId);
+            if (!exp.children || exp.children.length === 0) {
+                exp.amount = parseFloat(val) || 0; 
+                calculateAndRender();
+            }
+        };
+        window.addExpense = (cId) => { 
+            appState.cycles.find(c => c.id === cId).expenses.push({ id: generateId(), name: "", amount: 0, children: [], isExpanded: true }); 
+            calculateAndRender(); 
+        };
+        window.delExpense = (cId, eId) => { const cycle = appState.cycles.find(c => c.id === cId); cycle.expenses = cycle.expenses.filter(e => e.id !== eId); calculateAndRender(); };
+        window.moveExpense = (cId, eId, direction) => {
+            const cycle = appState.cycles.find(c => c.id === cId);
+            const idx = cycle.expenses.findIndex(e => e.id === eId);
+            if (direction === 'up' && idx > 0) [cycle.expenses[idx - 1], cycle.expenses[idx]] = [cycle.expenses[idx], cycle.expenses[idx - 1]];
+            else if (direction === 'down' && idx < cycle.expenses.length - 1) [cycle.expenses[idx], cycle.expenses[idx + 1]] = [cycle.expenses[idx + 1], cycle.expenses[idx]];
+            calculateAndRender(); 
+        };
+
+        window.addChildExpense = (cId, pId) => {
+            const cycle = appState.cycles.find(c => c.id === cId);
+            const parent = cycle.expenses.find(e => e.id === pId);
+            if (!parent.children) parent.children = [];
+            parent.isExpanded = true; 
+            parent.children.push({ id: generateId(), name: "", amount: 0 });
+            calculateAndRender();
+        };
+        window.editChildExpenseName = (cId, pId, childId, val) => {
+            const cycle = appState.cycles.find(c => c.id === cId);
+            const parent = cycle.expenses.find(e => e.id === pId);
+            const child = parent.children.find(c => c.id === childId);
+            child.name = val;
+            calculateAndRender();
+        };
+        window.editChildExpenseAmount = (cId, pId, childId, val) => {
+            const cycle = appState.cycles.find(c => c.id === cId);
+            const parent = cycle.expenses.find(e => e.id === pId);
+            const child = parent.children.find(c => c.id === childId);
+            child.amount = parseFloat(val) || 0;
+            calculateAndRender();
+        };
+        window.delChildExpense = (cId, pId, childId) => {
+            const cycle = appState.cycles.find(c => c.id === cId);
+            const parent = cycle.expenses.find(e => e.id === pId);
+            parent.children = parent.children.filter(c => c.id !== childId);
+            calculateAndRender(); 
+        };
+
+        window.addCycle = () => {
+            appState.cycles.push({ 
+                id: generateId(), title: "Novo Ciclo", carryOver: true,
+                incomes: [{ id: generateId(), name: "", amount: 0 }], 
+                expenses: [{ id: generateId(), name: "", amount: 0, children: [], isExpanded: true }] 
+            });
+            calculateAndRender();
+            setTimeout(() => { const board = document.getElementById('board'); board.scrollTo({ left: board.scrollWidth, behavior: 'smooth' }); }, 50);
+        };
+
+        window.delCycle = (cId) => {
+            if(confirm("Tem certeza que deseja apagar esta coluna inteira?")) { appState.cycles = appState.cycles.filter(c => c.id !== cId); calculateAndRender(); }
+        };
+
+        window.resetSimulator = () => {
+            if(confirm("Deseja limpar todos os dados e começar do zero?")) {
+                localStorage.removeItem('econSim_excel');
+                appState = { mainTitle: "Nova Simulação", cycles: [{ id: generateId(), title: "Mês 1", carryOver: true, incomes: [], expenses: [] }] };
+                calculateAndRender();
+            }
+        };
+
+        init();
+    </script>
+</body>
+</html>

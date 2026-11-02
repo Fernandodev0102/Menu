@@ -1,213 +1,600 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="pt-br">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="Menu.css" />
+    <title>Menu Pessoal & Profissional</title>
 
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <link rel="stylesheet" href="Menu.css" />
-  <title>Menu</title>
-</head>
+    <!-- Estilos Adicionais para o Modal de Tarefas -->
+    <style>
+      /* Botão Flutuante */
+      .btn-floating {
+        position: fixed;
+        bottom: 30px;
+        right: 30px;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        backdrop-filter: blur(10px);
+        color: #efefef;
+        padding: 15px 25px;
+        border-radius: 30px;
+        font-size: 1rem;
+        font-weight: bold;
+        letter-spacing: 1px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        z-index: 100;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .btn-floating:hover {
+        background: rgba(255, 255, 255, 0.15);
+        border-color: rgba(255, 255, 255, 0.4);
+        transform: translateY(-5px);
+      }
 
-<body>
-  <div class="container">
-    <div class="box" id="Pessoal">
-      <div id="title">
-        <h3>PESSOAL</h3>
-      </div>
+      /* Overlay do Pop-up */
+      .modal-overlay {
+        position: fixed;
+        top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0, 0, 0, 0.7);
+        backdrop-filter: blur(5px);
+        display: none; 
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+      }
+      .modal-overlay.active {
+        display: flex;
+        opacity: 1;
+      }
 
-      <div class="links">
-        <div class="link-item">
-          <a href="https://web.whatsapp.com/" target="_blank">
-            <img id="icon" src="/menu/ícones/icons8-whatsapp-90.png" alt="WhatsApp web" />
-          </a>
-          <p>WhatsApp</p>
-        </div>
+      /* Caixa do Pop-up */
+      .modal-content {
+        width: 100%;
+        max-width: 400px;
+        flex: none;
+        padding-bottom: 25px;
+        position: relative;
+        max-height: 80vh;
+        overflow-y: auto;
+      }
 
-        <div class="link-item">
-          <a href="https://www.instagram.com" target="_blank">
-            <img id="icon" src="/menu/ícones/icons8-instagram-96.png" alt="Instagram" />
-          </a>
-          <p>Instagram</p>
-        </div>
+      /* Botão de fechar */
+      .close-btn {
+        background: none;
+        border: none;
+        color: rgba(255, 255, 255, 0.5);
+        font-size: 1.8rem;
+        cursor: pointer;
+        transition: color 0.3s ease;
+        line-height: 1;
+      }
+      .close-btn:hover {
+        color: #fff;
+      }
 
-        <div class="link-item">
-          <a href="https://www.notion.so/f00757c3b50c423f8a6f8f47ac6fd09e" target="_blank">
-            <img class="black" id="icon" src="/menu/ícones/icons8-noção-90.png" alt="Notion" />
-          </a>
-          <p>Notion</p>
-        </div>
-        <div class="link-item">
-          <a href="https://www.tiktok.com/@f1losofia_ensina" target="_blank">
-            <img id="icon" src="/menu/ícones/icons8-tiktok-90.png" alt="TikTok" />
-          </a>
-          <p>TikTok</p>
-        </div>
-
-        <div class="link-item">
-          <a href="https://www.netflix.com/browse" target="_blank">
-            <img id="icon" src="/menu/ícones/4375011_logo_netflix_icon.png" alt="Netflix" />
-          </a>
-          <p>Netflix</p>
-        </div>
-
-        <div class="link-item">
-          <a href="https://www.youtube.com" target="_blank">
-            <img class="black" id="icon" src="/menu/ícones/youtube (1).png" alt="YouTube" />
-          </a>
-          <p>YouTube</p>
-        </div>
+      /* Campo de Adicionar Tarefa */
+      .add-task-container {
+        display: flex;
+        gap: 10px;
+        padding: 15px 25px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        width: 100%;
+      }
       
-        <div class="link-item">
-          <a href="https://mail.google.com/mail/u/0/#inbox" target="_blank">
-            <img class="black" id="icon" src="/menu/ícones/icons8-gmail-novo-90.png" alt="Gmail pessoal" />
-          </a>
-          <p>Email pessoal</p>
+      .add-task-container input {
+        flex: 1;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        padding: 10px 15px;
+        border-radius: 8px;
+        color: #fff;
+        outline: none;
+        transition: border 0.3s;
+      }
+      .add-task-container input:focus {
+        border-color: rgba(255, 255, 255, 0.5);
+      }
+      
+      .add-task-container button {
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        color: #fff;
+        padding: 0 15px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 1.2rem;
+        transition: all 0.3s;
+      }
+      .add-task-container button:hover {
+        background: rgba(255, 255, 255, 0.2);
+      }
+
+      /* Lista de Tarefas */
+      .task-list {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+        width: 100%;
+        padding: 0 25px;
+        margin-top: 15px;
+      }
+
+      .task-item-container {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        width: 100%;
+        padding: 5px 0;
+      }
+
+      .task-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-size: 0.95rem;
+        color: #ccc;
+        cursor: pointer;
+        flex: 1;
+        transition: color 0.2s;
+        word-break: break-word;
+      }
+      .task-item:hover {
+        color: #fff;
+      }
+      
+      /* Checkbox Customizado */
+      .task-item input[type="checkbox"] {
+        appearance: none;
+        width: 20px;
+        height: 20px;
+        flex-shrink: 0;
+        border: 2px solid rgba(255, 255, 255, 0.4);
+        border-radius: 4px;
+        background: transparent;
+        cursor: pointer;
+        position: relative;
+        transition: all 0.2s;
+      }
+      .task-item input[type="checkbox"]:checked {
+        background: #fff;
+        border-color: #fff;
+      }
+      .task-item input[type="checkbox"]:checked::after {
+        content: '✔';
+        position: absolute;
+        color: #000;
+        font-size: 14px;
+        font-weight: bold;
+        top: 50%; left: 50%;
+        transform: translate(-50%, -50%);
+      }
+      
+      .completed-text {
+        text-decoration: line-through;
+        opacity: 0.4;
+      }
+
+      /* Botões de Ação (Editar e Excluir) */
+      .task-actions {
+        display: flex;
+        gap: 8px;
+        opacity: 0.3;
+        transition: opacity 0.3s;
+      }
+      .task-item-container:hover .task-actions {
+        opacity: 1;
+      }
+      
+      .action-btn {
+        background: none;
+        border: none;
+        color: #fff;
+        cursor: pointer;
+        font-size: 1rem;
+        padding: 5px;
+        transition: transform 0.2s;
+      }
+      .action-btn:hover {
+        transform: scale(1.2);
+      }
+
+      /* Input de Edição em linha */
+      .edit-input {
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.4);
+        color: #fff;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 0.95rem;
+        width: 100%;
+        outline: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <section class="box" id="Pessoal">
+        <div class="box-header">
+          <h3 class="box-title">PESSOAL</h3>
         </div>
 
-        <div class="link-item">
-          <a href="https://www.google.com.br/maps/preview" target="_blank">
-            <img class="black" id="icon" src="/menu/ícones/icons8-google-maps-novo-90.png" alt="Google maps" />
-          </a>
-          <p>Maps</p>
+        <div class="links">
+          <div class="link-item">
+            <a href="https://web.whatsapp.com/" target="_blank">
+              <img class="icon" src="icones/icons8-whatsapp-90.png" alt="WhatsApp web" />
+            </a>
+            <p>WhatsApp</p>
+          </div>
+
+          <div class="link-item">
+            <a href="https://www.amazon.com.br/" target="_blank">
+              <img class="icon" src="icones/icons8-amazon-shopping-app-90.png" alt="Amazon" />
+            </a>
+            <p>Amazon Shopping</p>
+          </div>
+          <div class="link-item">
+            <a href="https://www.mercadolivre.com.br/" target="_blank">
+              <img class="icon" src="icones/mercado_livre.png" alt="Mercado Livre" />
+            </a>
+            <p>Mercado Livre</p>
+          </div>
+
+          <div class="link-item">
+            <a href="https://www.notion.so/f00757c3b50c423f8a6f8f47ac6fd09e" target="_blank">
+              <img class="icon icon-bg-white" src="icones/icons8-noção-90.png" alt="Notion" />
+            </a>
+            <p>Notion</p>
+          </div>
+
+          <div class="link-item">
+            <a href="https://www.youtube.com" target="_blank">
+              <img class="icon icon-bg-white" src="icones/youtube (1).png" alt="YouTube" />
+            </a>
+            <p>YouTube</p>
+          </div>
+
+          <div class="link-item">
+            <a href="https://mail.google.com/mail/u/0/#inbox" target="_blank">
+              <img class="icon icon-bg-white" src="icones/icons8-gmail-novo-90.png" alt="Gmail pessoal" />
+            </a>
+            <p>Email pessoal</p>
+          </div>
+
+          <div class="link-item">
+            <a href="https://www.google.com.br/maps/preview" target="_blank">
+              <img class="icon icon-bg-white" src="icones/icons8-google-maps-novo-90.png" alt="Google maps" />
+            </a>
+            <p>Maps</p>
+          </div>
+
+          <div class="link-item">
+            <a href="https://gemini.google.com/app?hl=pt-BR" target="_blank">
+              <img class="icon icon-bg-white" src="icones/icons8-gemini-ai-90.png" alt="Gemini" />
+            </a>
+            <p>Gemini</p>
+          </div>
+
+          <div class="link-item">
+            <a href="https://ead.unifor.br/ava/my/courses.php" target="_blank">
+              <img class="icon icon-bg-blue" src="icones/logo-unifor-simbolo-neg.svg" alt="Ava unifor" />
+            </a>
+            <p>Ava Unifor</p>
+          </div>
+
+          <div class="link-item">
+            <a href="https://www.netflix.com/browse" target="_blank">
+              <img class="icon" src="icones/4375011_logo_netflix_icon.png" alt="Netflix" />
+            </a>
+            <p>Netflix</p>
+          </div>
+
+          <div class="link-item">
+            <a href="https://www.primevideo.com/" target="_blank">
+              <img class="icon" src="icones/icons8-amazon-prime-video-96.png" alt="Prime Video" />
+            </a>
+            <p>Prime Video</p>
+          </div>
+
+          <div class="link-item">
+            <a href="https://play.hbomax.com/" target="_blank">
+              <img id="black" class="icon" src="icones/icons8-hbo-max-90.png" alt="HBO Max" />
+            </a>
+            <p>HBO Max</p>
+          </div>
+
+          <div class="link-item">
+            <a href="https://www.disneyplus.com/pt-br/home" target="_blank">
+              <img class="icon" src="icones/icons8-disney-plus-90.png" alt="Disney+" />
+            </a>
+            <p>Disney+</p>
+          </div>
+
+          <div class="link-item">
+            <a href="https://tv.apple.com/br" target="_blank">
+              <img id="black" class="icon" src="icones/icons8-apple-tv-90.png" alt="Apple Tv" />
+            </a>
+            <p>Apple Tv</p>
+          </div>
+
+          <div class="link-item">
+            <a href="https://globoplay.globo.com/" target="_blank">
+              <img class="icon" src="icones/globoplay-logo.svg" alt="Globoplay" />
+            </a>
+            <p>Globoplay</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="box" id="Profissional">
+        <div class="box-header">
+          <h3 class="box-title">PROFISSIONAL</h3>
         </div>
 
-        <div class="link-item">
-          <a href="https://gemini.google.com/app?hl=pt-BR" target="_blank">
-            <img class="black" id="icon" src="/menu/ícones/icons8-gemini-ai-90.png" alt="simulador de poupança" />
-          </a>
-          <p>Gemini</p>
-        </div>
-        <div class="link-item">
-          <a href="https://ead.unifor.br/ava/my/courses.php" target="_blank">
-            <img class="blue" id="icon" src="/menu/ícones/logo-unifor-simbolo-neg.svg" alt="Ava unifor" />
-          </a>
-          <p>Ava Unifor</p>
-        </div>
+        <div class="links">
+          <div class="link-item">
+            <a href="https://portal.gupy.io/" target="_blank">
+              <img class="icon" src="icones/Gupy.png" alt="Gupy" />
+            </a>
+            <p>Gupy</p>
+          </div>
 
-        <div class="link-item">
-          <a href="https://www.netacad.com/dashboard" target="_blank">
-            <img class="black" id="icon" src="/menu/ícones/67acf02dc937fb373eb21aa8_cisco_logo.png" alt="Cisco" />
-          </a>
-          <p>Cisco Academy</p>
-        </div>
+          <div class="link-item">
+            <a href="https://www.infojobs.com.br/" target="_blank">
+              <img class="icon" src="icones/infojobs.png" alt="InfoJobs" />
+            </a>
+            <p>InfoJobs</p>
+          </div>
 
-        <div class="link-item">
-          <a href="https://www.coursera.org/" target="_blank">
-            <img class="black" id="icon" src="/menu/ícones/icons8-coursera-90.png" alt="Coursera" />
-          </a>
-          <p>Coursera</p>
-        </div>
+          <div class="link-item">
+            <a href="https://www.glassdoor.com.br/Vaga/index.htm" target="_blank">
+              <img class="icon" src="icones/glassdoor-logo-white.jpg" alt="Glassdoor" />
+            </a>
+            <p>Glassdoor</p>
+          </div>
 
-        <div class="link-item">
-          <a href="https://pt.khanacademy.org/profile/me/courses" target="_blank">
-            <img class="black" id="icon" src="/menu/ícones/icons8-academia-khan-90.png" alt="Coursera" />
-          </a>
-          <p>Khan Academy</p>
+          <div class="link-item">
+            <a href="https://www.linkedin.com" target="_blank">
+              <img class="icon" src="icones/icons8-linkedin-90.png" alt="LinkedIn" />
+            </a>
+            <p>Linkedin</p>
+          </div>
+
+          <div class="link-item">
+            <a href="https://br.indeed.com/?from=gnav-notifcenter" target="_blank">
+              <img class="icon" src="icones/Indeed.webp" alt="Indeed" />
+            </a>
+            <p>Indeed</p>
+          </div>
+
+          <div class="link-item">
+            <a href="https://mail.google.com/mail/u/1/#inbox" target="_blank">
+              <img class="icon icon-bg-white" src="icones/icons8-gmail-novo-90.png" alt="Gmail profissional" />
+            </a>
+            <p>Email profissional</p>
+          </div>
+
+          <div class="link-item">
+            <a href="https://mail.google.com/mail/u/4/?ogbl#inbox" target="_blank">
+              <img class="icon icon-bg-white" src="icones/icons8-gmail-novo-90.png" alt="Gmail Unifor" />
+            </a>
+            <p>Email Unifor</p>
+          </div>
+
+          <div class="link-item">
+            <a href="https://drive.google.com/drive/u/1/home" target="_blank">
+              <img class="icon" src="icones/icons8-google-drive-90.png" alt="Google Drive" />
+            </a>
+            <p>Google Drive</p>
+          </div>
+
+          <div class="link-item">
+            <a href="https://github.com/dashboard" target="_blank">
+              <img class="icon icon-bg-white" src="icones/icons8-github-90.png" alt="GitHub" />
+            </a>
+            <p>GitHub</p>
+          </div>
+
+          <div class="link-item">
+            <a href="https://chatgpt.com/" target="_blank">
+              <img class="icon icon-bg-white" src="icones/icons8-chatgpt-90.png" alt="chatgpt" />
+            </a>
+            <p>ChatGPT</p>
+          </div>
+
+          <div class="link-item">
+            <a href="https://onedrive.live.com/?view=1" target="_blank">
+              <img class="icon" src="icones/icons8-microsoft-onedrive-2019-90.png" alt="OneDrive" />
+            </a>
+            <p>One drive</p>
+          </div>
+
+          <div class="link-item">
+            <a href="https://outlook.office.com/mail/" target="_blank">
+              <img class="icon" src="icones/icons8-outlook-90.png" alt="Outlook" />
+            </a>
+            <p>Outlook</p>
+          </div>
+
+          <div class="link-item">
+            <a href="https://excel.cloud.microsoft/" target="_blank">
+              <img class="icon" src="icones/icons8-microsoft-excel-2019-90.png" alt="Excel" />
+            </a>
+            <p>Excel</p>
+          </div>
         </div>
-      </div>
+      </section>
     </div>
 
-    <div class="box" id="Profissional">
-      <div id="title">
-        <h3>PROFISSIONAL</h3>
-      </div>
+    <!-- Botão Flutuante de Tarefas -->
+    <button id="btn-tarefas" class="btn-floating">
+      <span>✓ Tarefas</span>
+    </button>
 
-      <div class="links">
-        <div class="link-item">
-          <a href="https://portal.gupy.io/" target="_blank">
-            <img id="icon" src="/menu/ícones/Gupy.png" alt="Gupy" />
-          </a>
-          <p>Gupy</p>
+    <!-- Modal (Pop-up) de Tarefas -->
+    <div id="modal-tarefas" class="modal-overlay">
+      <section class="box modal-content">
+        <div class="box-header" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255, 255, 255, 0.1);">
+          <h3 class="box-title" style="margin: 0;">TAREFAS DO DIA</h3>
+          <button id="fechar-modal" class="close-btn">&times;</button>
+        </div>
+        
+        <!-- Campo para Adicionar Novas Tarefas -->
+        <div class="add-task-container">
+          <input type="text" id="input-nova-tarefa" placeholder="Escreva uma nova tarefa..." autocomplete="off">
+          <button id="btn-add-tarefa" title="Adicionar Tarefa">+</button>
         </div>
 
-        <div class="link-item">
-          <a href="https://www.infojobs.com.br/" target="_blank">
-            <img id="icon" src="/menu/ícones/infojobs.png" alt="InfoJobs" />
-          </a>
-          <p>InfoJobs</p>
+        <!-- Lista dinâmica gerada pelo JavaScript -->
+        <div class="task-list" id="lista-tarefas">
+          <!-- As tarefas vão aparecer aqui -->
         </div>
-
-        <div class="link-item">
-          <a href="https://www.glassdoor.com.br/Vaga/index.htm" target="_blank">
-            <img id="icon" src="/menu/ícones/glassdoor-logo-white.jpg" alt="Glassdoor" />
-          </a>
-          <p>Glassdoor</p>
-        </div>
-
-        <div class="link-item">
-          <a href="https://www.linkedin.com" target="_blank">
-            <img id="icon" src="/menu/ícones/icons8-linkedin-90.png" alt="LinkedIn" />
-          </a>
-          <p>Linkedin</p>
-        </div>
-
-        <div class="link-item">
-          <a href="https://br.indeed.com/?from=gnav-notifcenterhttps://www.linkedin.com" target="_blank">
-            <img id="icon" src="/menu/ícones/Indeed.webp" alt="LinkedIn" />
-          </a>
-          <p>Indeed</p>
-        </div>
-
-        <div class="link-item">
-          <a href="https://mail.google.com/mail/u/1/#inbox" target="_blank">
-            <img class="black" id="icon" src="/menu/ícones/icons8-gmail-novo-90.png" alt="Gmail profissional" />
-          </a>
-          <p>Email profissional</p>
-        </div>
-
-        <div class="link-item">
-          <a href="https://mail.google.com/mail/u/4/?ogbl#inbox" target="_blank">
-            <img class="black" id="icon" src="/menu/ícones/icons8-gmail-novo-90.png" alt="Gmail Unifor" />
-          </a>
-          <p>Email Unifor</p>
-        </div>
-
-        <div class="link-item">
-          <a href="https://drive.google.com/drive/u/1/home" target="_blank">
-            <img id="icon" src="/menu/ícones/icons8-google-drive-90.png" alt="Google Drive" />
-          </a>
-          <p>Google Drive</p>
-        </div>
-
-        <div class="link-item">
-          <a href="https://github.com/dashboard" target="_blank">
-            <img class="black" id="icon" src="/menu/ícones/icons8-github-90.png" alt="GitHub" />
-          </a>
-          <p>GitHub</p>
-        </div>
-
-        <div class="link-item">
-          <a href="https://chatgpt.com/" target="_blank">
-            <img class="black" id="icon" src="/menu/ícones/icons8-chatgpt-90.png" alt="chatgpt" />
-          </a>
-          <p>ChatGPT</p>
-        </div>
-
-        <div class="link-item">
-          <a href="https://onedrive.live.com/?view=1" target="_blank">
-            <img id="icon" src="/menu/ícones/icons8-microsoft-onedrive-2019-90.png" alt="OneDrive" />
-          </a>
-          <p>One drive</p>
-        </div>
-
-        <div class="link-item">
-          <a href="https://outlook.office.com/mail/" target="_blank">
-            <img id="icon" src="/menu/ícones/icons8-outlook-90.png" alt="Outlook" />
-          </a>
-          <p>Outlook</p>
-        </div>
-
-        <div class="link-item">
-          <a href="https://excel.cloud.microsoft/" target="_blank">
-            <img id="icon" src="/menu/ícones/icons8-microsoft-excel-2019-90.png" alt="Excel" />
-          </a>
-          <p>Excel</p>
-        </div>
-
-      
-      </div>
+      </section>
     </div>
-  </div>
-</body>
 
+    <!-- Lógica do Modal e do Gerenciador de Tarefas -->
+<!-- Lógica do Modal e do Gerenciador de Tarefas -->
+    <script>
+      // 1. Controle do Modal (Abrir e Fechar)
+      const btnTarefas = document.getElementById('btn-tarefas');
+      const modalTarefas = document.getElementById('modal-tarefas');
+      const btnFecharModal = document.getElementById('fechar-modal');
+
+      btnTarefas.addEventListener('click', () => {
+        modalTarefas.style.display = 'flex';
+        setTimeout(() => modalTarefas.classList.add('active'), 10);
+        renderizarTarefas(); 
+      });
+
+      function fecharModal() {
+        modalTarefas.classList.remove('active');
+        setTimeout(() => modalTarefas.style.display = 'none', 300);
+      }
+
+      btnFecharModal.addEventListener('click', fecharModal);
+      modalTarefas.addEventListener('click', (e) => {
+        if (e.target === modalTarefas) fecharModal();
+      });
+
+      // 2. Lógica das Tarefas 
+      let tarefas = JSON.parse(localStorage.getItem('minhasTarefasApp')) || [
+        { id: 1, text: 'Revisar e-mails matinais', concluida: false },
+        { id: 2, text: 'Atualizar projetos no GitHub', concluida: false }
+      ];
+
+      // NOVO: Verificação de virada de dia para resetar as tarefas
+      const dataAtual = new Date().toLocaleDateString('pt-BR');
+      const dataUltimoAcesso = localStorage.getItem('dataUltimoAcessoApp');
+
+      if (dataUltimoAcesso !== dataAtual) {
+        // Se for um novo dia, desmarca todas as tarefas
+        tarefas.forEach(tarefa => tarefa.concluida = false);
+        localStorage.setItem('minhasTarefasApp', JSON.stringify(tarefas));
+        localStorage.setItem('dataUltimoAcessoApp', dataAtual);
+      }
+
+      const listaTarefasDOM = document.getElementById('lista-tarefas');
+      const inputNovaTarefa = document.getElementById('input-nova-tarefa');
+      const btnAddTarefa = document.getElementById('btn-add-tarefa');
+
+      function salvarTarefas() {
+        localStorage.setItem('minhasTarefasApp', JSON.stringify(tarefas));
+      }
+
+      function renderizarTarefas() {
+        listaTarefasDOM.innerHTML = '';
+        
+        tarefas.forEach(tarefa => {
+          const divItem = document.createElement('div');
+          divItem.className = 'task-item-container';
+          
+          divItem.innerHTML = `
+            <label class="task-item">
+              <input type="checkbox" onchange="alternarTarefa(${tarefa.id})" ${tarefa.concluida ? 'checked' : ''}>
+              <span id="texto-tarefa-${tarefa.id}" class="${tarefa.concluida ? 'completed-text' : ''}">${tarefa.text}</span>
+            </label>
+            <div class="task-actions">
+              <button class="action-btn" onclick="iniciarEdicao(${tarefa.id})" title="Editar">✎</button>
+              <button class="action-btn" onclick="excluirTarefa(${tarefa.id})" title="Excluir">✖</button>
+            </div>
+          `;
+          listaTarefasDOM.appendChild(divItem);
+        });
+      }
+
+      // Adicionar Tarefa
+      function adicionarTarefa() {
+        const texto = inputNovaTarefa.value.trim();
+        if (texto === '') return;
+
+        const novaTarefa = {
+          id: Date.now(), 
+          text: texto,
+          concluida: false
+        };
+
+        tarefas.push(novaTarefa);
+        salvarTarefas();
+        inputNovaTarefa.value = '';
+        renderizarTarefas();
+      }
+
+      btnAddTarefa.addEventListener('click', adicionarTarefa);
+      inputNovaTarefa.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') adicionarTarefa();
+      });
+
+      // Excluir Tarefa
+      window.excluirTarefa = function(id) {
+        tarefas = tarefas.filter(t => t.id !== id);
+        salvarTarefas();
+        renderizarTarefas();
+      };
+
+      // Marcar/Desmarcar Tarefa
+      window.alternarTarefa = function(id) {
+        const tarefa = tarefas.find(t => t.id === id);
+        if (tarefa) {
+          tarefa.concluida = !tarefa.concluida;
+          salvarTarefas();
+          renderizarTarefas();
+        }
+      };
+
+      // Iniciar Edição
+      window.iniciarEdicao = function(id) {
+        const spanElemento = document.getElementById(`texto-tarefa-${id}`);
+        if(!spanElemento) return;
+
+        const textoAtual = spanElemento.innerText;
+        spanElemento.outerHTML = `<input type="text" id="input-edicao-${id}" class="edit-input" value="${textoAtual}" onblur="salvarEdicao(${id})" onkeypress="if(event.key === 'Enter') salvarEdicao(${id})">`;
+        
+        const inputEdicao = document.getElementById(`input-edicao-${id}`);
+        inputEdicao.focus();
+        inputEdicao.setSelectionRange(inputEdicao.value.length, inputEdicao.value.length);
+      };
+
+      // Salvar Edição
+      window.salvarEdicao = function(id) {
+        const inputEdicao = document.getElementById(`input-edicao-${id}`);
+        if(inputEdicao) {
+          const novoTexto = inputEdicao.value.trim();
+          const tarefa = tarefas.find(t => t.id === id);
+          
+          if (novoTexto !== '') {
+            tarefa.text = novoTexto;
+          }
+          
+          salvarTarefas();
+          renderizarTarefas();
+        }
+      };
+    </script>
+  </body>
 </html>

@@ -1,0 +1,1392 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Modelador de Fluxograma 2.5</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap");
+
+      body {
+        font-family: "Inter", sans-serif;
+        background-color: #f0f2f5;
+        color: #2d3748;
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+        width: 100vw;
+        margin: 0;
+        overflow: hidden;
+      }
+
+      .main-content-area {
+        display: flex;
+        flex: 1;
+        position: relative;
+        height: 100%;
+        overflow: hidden;
+      }
+
+      .sidebar {
+        width: 0;
+        min-width: 0;
+        background-color: #2d3748;
+        color: #ffffff;
+        padding: 0;
+        box-shadow: 2px 0 5px rgba(0, 0, 0, 0.2);
+        transition:
+          width 0.3s ease-in-out,
+          min-width 0.3s ease-in-out,
+          padding 0.3s ease-in-out;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        flex-shrink: 0;
+        z-index: 50;
+        height: 100%;
+      }
+      .sidebar.open {
+        width: 280px;
+        min-width: 280px;
+        padding: 1rem;
+      }
+      .sidebar-item {
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.3s ease-in-out;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+      .sidebar.open .sidebar-item {
+        opacity: 1;
+        pointer-events: auto;
+      }
+
+      .sidebar-toggle {
+        position: fixed;
+        left: 0;
+        top: 50%;
+        transform: translateY(-50%);
+        background-color: #3182ce;
+        color: white;
+        border: none;
+        padding: 0.5rem;
+        border-radius: 0 0.5rem 0.5rem 0;
+        cursor: pointer;
+        z-index: 60;
+        transition: left 0.3s ease-in-out;
+        box-shadow: 2px 0 5px rgba(0, 0, 0, 0.2);
+      }
+      .sidebar.open + .sidebar-toggle {
+        left: 280px;
+      }
+
+      .flowchart-container {
+        position: relative;
+        flex-grow: 1;
+        background-color: #ffffff;
+        border-radius: 0.75rem;
+        overflow: auto;
+        margin: 1rem;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        min-width: 0;
+        min-height: 0;
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+        /* cursor padrão agora, vira 'grab' só com a barra de espaço */
+        cursor: default;
+      }
+      .flowchart-container::-webkit-scrollbar {
+        display: none;
+      }
+      .flowchart-container.panning {
+        cursor: grabbing !important;
+      }
+
+      .canvas-area {
+        position: relative;
+        width: 3000px;
+        height: 3000px;
+        transform-origin: top left;
+        transition: transform 0.1s ease-out; /* Suavizado para o zoom por scroll */
+        background-image:
+          linear-gradient(0deg, transparent 19px, rgba(0, 0, 0, 0.05) 20px),
+          linear-gradient(90deg, transparent 19px, rgba(0, 0, 0, 0.05) 20px);
+        background-size: 20px 20px;
+      }
+
+      /* Caixa de seleção múltipla (Lasso) */
+      .selection-box {
+        position: absolute;
+        border: 1px solid rgba(49, 130, 206, 0.8);
+        background-color: rgba(49, 130, 206, 0.2);
+        pointer-events: none;
+        z-index: 100;
+      }
+
+      .block {
+        position: absolute;
+        background-color: #f7fafc;
+        border: 1px solid #cbd5e0;
+        border-radius: 0.5rem;
+        padding: 0.75rem 1rem;
+        text-align: center;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.07);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        transition:
+          box-shadow 0.2s ease-in-out,
+          border-color 0.2s;
+        min-width: 120px;
+        min-height: 60px;
+        z-index: 10;
+        color: #2d3748;
+        cursor: grab;
+        box-sizing: border-box;
+      }
+      .block:active {
+        cursor: grabbing;
+      }
+      .block:hover {
+        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+      }
+      /* Estilo visual do bloco selecionado */
+      .block.selected {
+        border-color: #3182ce;
+        box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.4);
+      }
+
+      .resize-handle {
+        position: absolute;
+        right: 0;
+        bottom: 0;
+        width: 16px;
+        height: 16px;
+        cursor: nwse-resize;
+        background: transparent;
+        z-index: 25;
+      }
+
+      .block-text {
+        word-wrap: break-word;
+        max-width: 100%;
+        overflow-wrap: break-word;
+        flex-grow: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        line-height: 1.3;
+        pointer-events: none;
+      }
+      .block-actions {
+        position: absolute;
+        top: -15px;
+        right: -10px;
+        display: flex;
+        gap: 0.25rem;
+        background-color: #ffffff;
+        padding: 0.25rem;
+        border-radius: 0.5rem;
+        opacity: 0;
+        transition: opacity 0.2s ease-in-out;
+        z-index: 20;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+      }
+
+      .block:hover .block-actions {
+        opacity: 1;
+      }
+      .block-action-button {
+        background: none;
+        border: none;
+        cursor: pointer;
+        color: #2d3748;
+        padding: 0.25rem;
+        border-radius: 0.25rem;
+        transition: background-color 0.2s;
+      }
+      .block-action-button:hover {
+        background-color: #e2e8f0;
+      }
+      .icon {
+        width: 18px;
+        height: 18px;
+        fill: currentColor;
+        vertical-align: middle;
+      }
+      .svg-lines {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        z-index: 5;
+      }
+      .line {
+        stroke: #4a5568;
+        stroke-width: 2.5;
+        fill: none;
+        pointer-events: stroke;
+        cursor: pointer;
+        transition:
+          stroke 0.2s,
+          stroke-width 0.2s;
+      }
+      .line:hover {
+        stroke: #e53e3e;
+        stroke-width: 4;
+      }
+
+      .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.7);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+        opacity: 0;
+        visibility: hidden;
+        transition:
+          opacity 0.3s,
+          visibility 0.3s;
+      }
+      .modal-overlay.open {
+        opacity: 1;
+        visibility: visible;
+      }
+      .modal-content {
+        background-color: #f7fafc;
+        padding: 2rem;
+        border-radius: 0.75rem;
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+        width: 90%;
+        max-width: 400px;
+      }
+      .modal-content h3 {
+        font-size: 1.5rem;
+        font-weight: 700;
+        margin-bottom: 1rem;
+        text-align: center;
+      }
+      .modal-content input[type="text"],
+      .modal-content textarea {
+        width: 100%;
+        min-height: 40px;
+        background-color: #e2e8f0;
+        border: 1px solid #cbd5e0;
+        border-radius: 0.5rem;
+        padding: 0.75rem;
+        margin-bottom: 1rem;
+        resize: vertical;
+      }
+      .modal-buttons {
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.75rem;
+      }
+      .modal-button {
+        padding: 0.75rem 1.5rem;
+        border-radius: 0.5rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: 0.2s;
+      }
+      .modal-button-primary {
+        background-color: #3182ce;
+        color: #ffffff;
+        border: none;
+      }
+      .modal-button-primary:hover {
+        background-color: #2b6cb0;
+      }
+      .modal-button-secondary {
+        background-color: #cbd5e0;
+        color: #2d3748;
+        border: none;
+      }
+      .modal-button-secondary:hover {
+        background-color: #a0aec0;
+      }
+
+      .scheme-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        flex-grow: 1;
+      }
+      .scheme-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.5rem 0.75rem;
+        background-color: #4a5568;
+        border-radius: 0.5rem;
+        margin-bottom: 0.5rem;
+        cursor: pointer;
+        color: #ffffff;
+      }
+      .scheme-item:hover {
+        background-color: #636b7a;
+      }
+      .scheme-item-name {
+        flex-grow: 1;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .scheme-item-actions {
+        display: flex;
+        gap: 0.25rem;
+      }
+      .scheme-item-action-btn {
+        background: none;
+        border: none;
+        color: #ffffff;
+        cursor: pointer;
+        padding: 0.25rem;
+        border-radius: 0.25rem;
+      }
+      .scheme-item-action-btn:hover {
+        background-color: #2d3748;
+      }
+
+      .color-palette {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        justify-content: center;
+        margin-top: 1rem;
+      }
+      .color-option {
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        cursor: pointer;
+        border: 2px solid transparent;
+        transition: 0.1s;
+      }
+      .color-option:hover {
+        transform: scale(1.1);
+        border-color: #3182ce;
+      }
+      .color-option.selected {
+        border-color: #3182ce;
+        box-shadow: 0 0 0 3px #3182ce;
+      }
+
+      .block-connecting-start {
+        border-color: #3182ce;
+        box-shadow: 0 0 0 4px rgba(49, 130, 206, 0.5);
+      }
+
+      .zoom-controls {
+        position: absolute;
+        bottom: 2rem;
+        right: 2rem;
+        display: flex;
+        gap: 0.5rem;
+        background-color: #ffffff;
+        padding: 0.5rem;
+        border-radius: 0.5rem;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        z-index: 40;
+      }
+      .zoom-btn {
+        background-color: #e2e8f0;
+        border: none;
+        min-width: 40px;
+        padding: 0 0.5rem;
+        height: 35px;
+        border-radius: 0.25rem;
+        cursor: pointer;
+        font-weight: bold;
+        font-size: small;
+        color: #2d3748;
+        transition: background-color 0.2s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .zoom-btn:hover {
+        background-color: #cbd5e0;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="main-content-area">
+      <div id="sidebar" class="sidebar">
+        <div class="sidebar-item">
+          <button
+            id="addMainBlockBtn"
+            class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg shadow-lg w-full"
+          >
+            Adicionar Bloco Principal
+          </button>
+        </div>
+        <div class="sidebar-item">
+          <button
+            id="saveFlowchartBtn"
+            class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg shadow-lg w-full"
+          >
+            Salvar Esquema
+          </button>
+        </div>
+        <div class="sidebar-item">
+          <button
+            id="newFlowchartBtn"
+            class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg shadow-lg w-full"
+          >
+            Novo Esquema
+          </button>
+        </div>
+        <hr class="border-gray-600 sidebar-item w-full" />
+
+        <h4 class="text-lg font-semibold mt-4 mb-2 sidebar-item">
+          Meus Esquemas
+        </h4>
+        <ul id="schemeList" class="scheme-list">
+          <li class="text-gray-400 text-center">Nenhum esquema salvo.</li>
+        </ul>
+      </div>
+
+      <button id="sidebarToggleBtn" class="sidebar-toggle">
+        <svg
+          id="toggleIconOpen"
+          class="w-6 h-6"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M4 6h16M4 12h16M4 18h16"
+          ></path>
+        </svg>
+        <svg
+          id="toggleIconClose"
+          class="w-6 h-6 hidden"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M6 18L18 6M6 6l12 12"
+          ></path>
+        </svg>
+      </button>
+
+      <div id="flowchartArea" class="flowchart-container">
+        <div id="canvasArea" class="canvas-area">
+          <svg id="flowchartLines" class="svg-lines">
+            <defs>
+              <marker
+                id="arrowhead"
+                markerWidth="6"
+                markerHeight="5"
+                refX="5.5"
+                refY="2.5"
+                orient="auto"
+              >
+                <polygon points="0 0, 6 2.5, 0 5" fill="#4a5568" />
+              </marker>
+            </defs>
+          </svg>
+          <div id="blocksLayer"></div>
+        </div>
+      </div>
+
+      <div class="zoom-controls">
+        <button class="zoom-btn" id="zoomOutBtn" title="Diminuir Zoom">
+          -
+        </button>
+        <button class="zoom-btn" id="zoomResetBtn" title="Tamanho Original">
+          100%
+        </button>
+        <button class="zoom-btn" id="zoomInBtn" title="Aumentar Zoom">+</button>
+      </div>
+    </div>
+
+    <!-- Modais omitidos no resumo mantidos integrais -->
+    <div id="editBlockModal" class="modal-overlay">
+      <div class="modal-content">
+        <h3>Editar Texto</h3>
+        <textarea
+          id="blockTextInput"
+          placeholder="Digite o texto do bloco aqui..."
+        ></textarea>
+        <div class="modal-buttons">
+          <button
+            id="cancelEditBlockBtn"
+            class="modal-button modal-button-secondary"
+          >
+            Cancelar
+          </button>
+          <button
+            id="saveEditBlockBtn"
+            class="modal-button modal-button-primary"
+          >
+            Salvar
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div id="saveFlowchartModal" class="modal-overlay">
+      <div class="modal-content">
+        <h3>Salvar Esquema</h3>
+        <input
+          type="text"
+          id="flowchartNameInput"
+          placeholder="Nome do esquema"
+        />
+        <div class="modal-buttons">
+          <button
+            id="cancelSaveFlowchartBtn"
+            class="modal-button modal-button-secondary"
+          >
+            Cancelar
+          </button>
+          <button
+            id="confirmSaveFlowchartBtn"
+            class="modal-button modal-button-primary"
+          >
+            Salvar
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div id="confirmationModal" class="modal-overlay">
+      <div class="modal-content">
+        <h3 id="confirmationModalTitle"></h3>
+        <p id="confirmationModalText" class="mb-4 text-center"></p>
+        <div class="modal-buttons justify-center">
+          <button
+            id="cancelConfirmBtn"
+            class="modal-button modal-button-secondary"
+          >
+            Cancelar
+          </button>
+          <button
+            id="confirmActionBtn"
+            class="modal-button modal-button-primary bg-red-600 hover:bg-red-700"
+          >
+            Confirmar
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div id="colorPickerModal" class="modal-overlay">
+      <div class="modal-content">
+        <h3>Selecionar Cor</h3>
+        <div id="colorPalette" class="color-palette"></div>
+        <div class="modal-buttons justify-center mt-4">
+          <button
+            id="closeColorPickerBtn"
+            class="modal-button modal-button-secondary"
+          >
+            Fechar
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <script type="module">
+      let blocks = [];
+      let customConnections = [];
+      let editingBlockId = null;
+      let currentFlowchartId = null;
+      let currentFlowchartName = "";
+      let currentColorBlockId = null;
+      let isConnecting = false;
+      let startBlockForConnection = null;
+      let zoomLevel = 1;
+
+      // Novas variáveis para seleção e pan
+      let selectedBlocks = new Set();
+      let isSelecting = false;
+      let selectionStartX, selectionStartY;
+      let selectionBox = null;
+      let isSpaceDown = false;
+      let selectedBlocksOffsets = [];
+      let isDraggingBlock = false;
+
+      const GRID_SIZE = 20;
+
+      const blockColors = [
+        "#000000",
+        "#4a5568",
+        "#e53e3e",
+        "#dd6b20",
+        "#38a169",
+        "#3182ce",
+        "#805ad5",
+        "#d69e2e",
+        "#00a3c4",
+        "#d53f8c",
+      ];
+
+      const flowchartArea = document.getElementById("flowchartArea");
+      const canvasArea = document.getElementById("canvasArea");
+      const flowchartLines = document.getElementById("flowchartLines");
+      const blocksLayer = document.getElementById("blocksLayer");
+      const schemeList = document.getElementById("schemeList");
+      const confirmationModal = document.getElementById("confirmationModal");
+      const confirmationModalTitle = document.getElementById(
+        "confirmationModalTitle",
+      );
+      const confirmationModalText = document.getElementById(
+        "confirmationModalText",
+      );
+      let confirmationCallback = null;
+
+      let isPanning = false;
+      let panStartX, panStartY, panScrollLeft, panScrollTop;
+
+      // Controles de teclado globais
+      window.addEventListener("keydown", (e) => {
+        // Controle de Espaço para Pan (Mover tela)
+        if (
+          e.code === "Space" &&
+          e.target.tagName !== "INPUT" &&
+          e.target.tagName !== "TEXTAREA"
+        ) {
+          isSpaceDown = true;
+          flowchartArea.style.cursor = "grab";
+          e.preventDefault();
+        }
+
+        // Deletar blocos selecionados em massa
+        if (
+          e.key === "Delete" &&
+          selectedBlocks.size > 0 &&
+          e.target.tagName !== "INPUT" &&
+          e.target.tagName !== "TEXTAREA"
+        ) {
+          showConfirmationModal(
+            "Excluir Seleção",
+            `Deseja excluir ${selectedBlocks.size} bloco(s) selecionado(s)?`,
+            () => {
+              blocks = blocks.filter((b) => !selectedBlocks.has(b.id));
+              customConnections = customConnections.filter(
+                (c) =>
+                  !selectedBlocks.has(c.startBlockId) &&
+                  !selectedBlocks.has(c.endBlockId),
+              );
+              selectedBlocks.clear();
+              renderFlowchart();
+              autoSave();
+            },
+          );
+        }
+      });
+
+      window.addEventListener("keyup", (e) => {
+        if (e.code === "Space") {
+          isSpaceDown = false;
+          flowchartArea.style.cursor = "default";
+        }
+      });
+
+      // Zoom com scroll do mouse + Ctrl
+      flowchartArea.addEventListener(
+        "wheel",
+        (e) => {
+          if (e.ctrlKey || e.metaKey) {
+            e.preventDefault();
+            if (e.deltaY < 0) {
+              zoomLevel = Math.min(zoomLevel + 0.1, 2);
+            } else {
+              zoomLevel = Math.max(zoomLevel - 0.1, 0.5);
+            }
+            updateZoom();
+          }
+        },
+        { passive: false },
+      );
+
+      // Lógica principal de clique no Fundo (Seleção vs Movimentação da Tela)
+      flowchartArea.addEventListener("mousedown", (e) => {
+        if (
+          e.target.closest(".block") ||
+          e.target.closest(".modal-overlay") ||
+          e.target.closest(".zoom-controls")
+        )
+          return;
+
+        // Botão do meio do mouse (scroll click) ou Espaço + Clique = Pan (Movimentar Tela)
+        if (e.button === 1 || isSpaceDown) {
+          isPanning = true;
+          panStartX = e.clientX;
+          panStartY = e.clientY;
+          panScrollLeft = flowchartArea.scrollLeft;
+          panScrollTop = flowchartArea.scrollTop;
+          flowchartArea.classList.add("panning");
+          e.preventDefault();
+        }
+        // Clique esquerdo normal sem espaço = Caixa de Seleção
+        else if (e.button === 0) {
+          isSelecting = true;
+          const rect = canvasArea.getBoundingClientRect();
+          selectionStartX = (e.clientX - rect.left) / zoomLevel;
+          selectionStartY = (e.clientY - rect.top) / zoomLevel;
+
+          selectionBox = document.createElement("div");
+          selectionBox.className = "selection-box";
+          selectionBox.style.left = `${selectionStartX}px`;
+          selectionBox.style.top = `${selectionStartY}px`;
+          selectionBox.style.width = `0px`;
+          selectionBox.style.height = `0px`;
+          canvasArea.appendChild(selectionBox);
+
+          // Se não estiver segurando shift, limpa as seleções anteriores
+          if (!e.shiftKey) {
+            selectedBlocks.clear();
+            updateSelectionVisuals();
+          }
+        }
+      });
+
+      window.addEventListener("mousemove", (e) => {
+        // Movendo a tela
+        if (isPanning) {
+          const dx = e.clientX - panStartX;
+          const dy = e.clientY - panStartY;
+          flowchartArea.scrollLeft = panScrollLeft - dx;
+          flowchartArea.scrollTop = panScrollTop - dy;
+        }
+        // Desenhando a caixa de seleção
+        else if (isSelecting && selectionBox) {
+          const rect = canvasArea.getBoundingClientRect();
+          const currentX = (e.clientX - rect.left) / zoomLevel;
+          const currentY = (e.clientY - rect.top) / zoomLevel;
+
+          const x = Math.min(selectionStartX, currentX);
+          const y = Math.min(selectionStartY, currentY);
+          const w = Math.abs(currentX - selectionStartX);
+          const h = Math.abs(currentY - selectionStartY);
+
+          selectionBox.style.left = `${x}px`;
+          selectionBox.style.top = `${y}px`;
+          selectionBox.style.width = `${w}px`;
+          selectionBox.style.height = `${h}px`;
+
+          // Checa interseção dos blocos com a caixa
+          blocks.forEach((b) => {
+            const el = document.getElementById(`block-${b.id}`);
+            if (!el) return;
+            const bx = b.x;
+            const by = b.y;
+            const bw = el.offsetWidth;
+            const bh = el.offsetHeight;
+
+            if (bx < x + w && bx + bw > x && by < y + h && by + bh > y) {
+              selectedBlocks.add(b.id);
+            } else if (!e.shiftKey) {
+              // Remove apenas se não segurar Shift
+              selectedBlocks.delete(b.id);
+            }
+          });
+          updateSelectionVisuals();
+        }
+      });
+
+      window.addEventListener("mouseup", () => {
+        if (isPanning) {
+          isPanning = false;
+          flowchartArea.classList.remove("panning");
+        }
+        if (isSelecting) {
+          isSelecting = false;
+          if (selectionBox) {
+            selectionBox.remove();
+            selectionBox = null;
+          }
+        }
+      });
+
+      let isResizing = false;
+      let currentResizeBlock = null;
+      let startW, startH, startX, startY;
+
+      window.addEventListener("mousemove", (e) => {
+        if (isResizing && currentResizeBlock) {
+          const dx = (e.clientX - startX) / zoomLevel;
+          const dy = (e.clientY - startY) / zoomLevel;
+
+          let newW = snapToGrid(Math.max(120, startW + dx));
+          let newH = snapToGrid(Math.max(60, startH + dy));
+
+          currentResizeBlock.style.width = `${newW}px`;
+          currentResizeBlock.style.height = `${newH}px`;
+
+          const bId = currentResizeBlock.id.replace("block-", "");
+          const bData = blocks.find((b) => b.id === bId);
+          if (bData) {
+            bData.width = newW;
+            bData.height = newH;
+          }
+          drawAllLines();
+        }
+      });
+
+      window.addEventListener("mouseup", () => {
+        if (isResizing) {
+          isResizing = false;
+          currentResizeBlock = null;
+          autoSave();
+        }
+      });
+
+      function updateSelectionVisuals() {
+        document.querySelectorAll(".block").forEach((el) => {
+          const id = el.id.replace("block-", "");
+          if (selectedBlocks.has(id)) {
+            el.classList.add("selected");
+          } else {
+            el.classList.remove("selected");
+          }
+        });
+      }
+
+      function showModal(modalElement) {
+        modalElement.classList.add("open");
+      }
+      function hideModal(modalElement) {
+        modalElement.classList.remove("open");
+      }
+      function showConfirmationModal(title, text, onConfirm) {
+        confirmationModalTitle.textContent = title;
+        confirmationModalText.textContent = text;
+        confirmationCallback = onConfirm;
+        showModal(confirmationModal);
+      }
+      function generateId() {
+        return "_" + Math.random().toString(36).substr(2, 9);
+      }
+      function snapToGrid(val) {
+        return Math.round(val / GRID_SIZE) * GRID_SIZE;
+      }
+
+      function drawAllLines() {
+        const defs = flowchartLines.querySelector("defs");
+        flowchartLines.innerHTML = "";
+        if (defs) flowchartLines.appendChild(defs);
+
+        blocks.forEach((block) => {
+          if (block.parentId) {
+            const parentBlock = blocks.find((b) => b.id === block.parentId);
+            if (parentBlock) drawLine(parentBlock, block, null, true);
+          }
+        });
+
+        customConnections.forEach((conn) => {
+          const startBlock = blocks.find((b) => b.id === conn.startBlockId);
+          const endBlock = blocks.find((b) => b.id === conn.endBlockId);
+          if (startBlock && endBlock)
+            drawLine(startBlock, endBlock, conn.id, false);
+        });
+      }
+
+      function renderFlowchart() {
+        blocksLayer.innerHTML = "";
+
+        blocks.forEach((block) => {
+          const blockElement = document.createElement("div");
+          blockElement.id = `block-${block.id}`;
+          blockElement.classList.add("block");
+
+          if (selectedBlocks.has(block.id)) {
+            blockElement.classList.add("selected");
+          }
+
+          blockElement.style.backgroundColor =
+            block.color || (block.type === "main" ? "#2d3748" : "#4a5568");
+          blockElement.style.color = "#ffffff";
+
+          if (isConnecting && startBlockForConnection === block.id) {
+            blockElement.classList.add("block-connecting-start");
+          }
+
+          blockElement.style.left = `${block.x}px`;
+          blockElement.style.top = `${block.y}px`;
+
+          if (block.width) blockElement.style.width = `${block.width}px`;
+          if (block.height) blockElement.style.height = `${block.height}px`;
+
+          const svgDesc = `<svg class="icon" viewBox="0 0 24 24"><path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`;
+          const svgEdit = `<svg class="icon" viewBox="0 0 24 24"><path d="M11 4H4C3.46957 4 2.96086 4.21071 2.58579 4.58579C2.21071 4.96086 2 5.46957 2 6V20C2 20.5304 2.21071 21.0391 2.58579 21.4142C2.96086 21.7893 3.46957 22 4 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M18.5 2.5C18.8978 2.10217 19.4391 1.87868 20 1.87868C20.5609 1.87868 21.1022 2.10217 21.5 2.5C21.8978 2.89782 22.1213 3.43914 22.1213 4C22.1213 4.56086 21.8978 5.10217 21.5 5.5L12 15L8 16L9 12L18.5 2.5Z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`;
+          const svgColor = `<svg class="icon" viewBox="0 0 24 24"><path d="M12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2ZM12 4C16.4183 4 20 7.58172 20 12C20 16.4183 16.4183 20 12 20C7.58172 20 4 16.4183 4 12C4 7.58172 7.58172 4 12 4Z" fill="currentColor"/><path d="M12 6C9.79086 6 8 7.79086 8 10C8 12.2091 9.79086 14 12 14C14.2091 14 16 12.2091 16 10C16 7.79086 14.2091 6 12 6ZM12 12C10.8954 12 10 11.1046 10 10C10 8.89543 10.8954 8 12 8C13.1046 8 14 8.89543 14 10C14 11.1046 13.1046 12 12 12Z" fill="currentColor"/></svg>`;
+          const svgConn = `<svg class="icon" viewBox="0 0 24 24"><path d="M13 11a1 1 0 100-2 1 1 0 000 2zM17 11a1 1 0 100-2 1 1 0 000 2zM12 12h-2a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2v3a2 2 0 01-2 2zM16 16h-2a2 2 0 01-2-2v-3a2 2 0 012-2h2a2 2 0 012 2v3a2 2 0 01-2 2z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`;
+          const svgDel = `<svg class="icon" viewBox="0 0 24 24"><path d="M3 6H5H21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M19 6V20C19 20.5304 18.7893 21.0391 18.4142 21.4142C18.0391 21.7893 17.5304 22 17 22H7C6.46957 22 5.96086 21.7893 5.58579 21.4142C5.21071 21.0391 5 20.5304 5 20V6M8 6V4C8 3.46957 8.21071 2.96086 8.58579 2.58579C8.96086 2.21071 9.46957 2 10 2H14C14.5304 2 15.0391 2.21071 15.4142 2.58579C15.7893 2.96086 16 3.46957 16 4V6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`;
+
+          blockElement.innerHTML = `
+                    <div class="block-text">${block.text}</div>
+                    <div class="resize-handle" title="Redimensionar"></div>
+                    <div class="block-actions">
+                        <button class="block-action-button add-descendant-btn" data-id="${block.id}" title="Descer">${svgDesc}</button>
+                        <button class="block-action-button edit-block-btn" data-id="${block.id}" title="Editar">${svgEdit}</button>
+                        <button class="block-action-button color-edit-btn" data-id="${block.id}" title="Cor">${svgColor}</button>
+                        <button class="block-action-button connect-block-btn" data-id="${block.id}" title="Conectar">${svgConn}</button>
+                        <button class="block-action-button delete-block-btn" data-id="${block.id}" title="Excluir">${svgDel}</button>
+                    </div>
+                `;
+          blocksLayer.appendChild(blockElement);
+        });
+
+        drawAllLines();
+        addEventListenersToBlocks();
+        autoSave();
+      }
+
+      function drawLine(startBlock, endBlock, connId, isHierarchy) {
+        const startEl = document.getElementById(`block-${startBlock.id}`);
+        const endEl = document.getElementById(`block-${endBlock.id}`);
+        if (!startEl || !endEl) return;
+
+        let startX, startY, endX, endY, pathData;
+
+        if (isHierarchy) {
+          startX = snapToGrid(startBlock.x + startEl.offsetWidth / 2);
+          startY = snapToGrid(startBlock.y + startEl.offsetHeight);
+          endX = snapToGrid(endBlock.x + endEl.offsetWidth / 2);
+          endY = snapToGrid(endBlock.y);
+
+          let midY = snapToGrid(startY + (endY - startY) / 2);
+          pathData = `M ${startX},${startY} L ${startX},${midY} L ${endX},${midY} L ${endX},${endY}`;
+        } else {
+          startX = snapToGrid(startBlock.x + startEl.offsetWidth / 2);
+          startY = snapToGrid(startBlock.y + startEl.offsetHeight / 2);
+          endX = snapToGrid(endBlock.x + endEl.offsetWidth / 2);
+          endY = snapToGrid(endBlock.y + endEl.offsetHeight / 2);
+
+          let midX = snapToGrid(startX + (endX - startX) / 2);
+          pathData = `M ${startX},${startY} L ${midX},${startY} L ${midX},${endY} L ${endX},${endY}`;
+        }
+
+        const path = document.createElementNS(
+          "http://www.w3.org/2000/svg",
+          "path",
+        );
+        path.setAttribute("d", pathData);
+        path.classList.add("line");
+        path.setAttribute("marker-end", "url(#arrowhead)");
+
+        if (connId) {
+          path.dataset.connId = connId;
+          path.addEventListener("click", () => {
+            showConfirmationModal(
+              "Excluir Conexão",
+              "Deseja remover esta linha de conexão?",
+              () => {
+                customConnections = customConnections.filter(
+                  (c) => c.id !== connId,
+                );
+                renderFlowchart();
+              },
+            );
+          });
+        }
+        flowchartLines.appendChild(path);
+      }
+
+      document
+        .getElementById("addMainBlockBtn")
+        .addEventListener("click", () => {
+          blocks.push({
+            id: generateId(),
+            text: "Novo Bloco Principal",
+            type: "main",
+            parentId: null,
+            x: snapToGrid(200),
+            y: snapToGrid(50),
+            color: null,
+          });
+          renderFlowchart();
+        });
+
+      function addEventListenersToBlocks() {
+        document.querySelectorAll(".resize-handle").forEach((handle) => {
+          handle.addEventListener("mousedown", (e) => {
+            e.stopPropagation();
+            isResizing = true;
+            currentResizeBlock = handle.closest(".block");
+            startW = currentResizeBlock.offsetWidth;
+            startH = currentResizeBlock.offsetHeight;
+            startX = e.clientX;
+            startY = e.clientY;
+          });
+        });
+
+        document.querySelectorAll(".add-descendant-btn").forEach(
+          (btn) =>
+            (btn.onclick = (e) => {
+              e.stopPropagation();
+              const parentBlock = blocks.find((b) => b.id === btn.dataset.id);
+              if (parentBlock) {
+                const parentEl = document.getElementById(
+                  `block-${parentBlock.id}`,
+                );
+                blocks.push({
+                  id: generateId(),
+                  text: "Novo Bloco Descendente",
+                  type: "descendant",
+                  parentId: parentBlock.id,
+                  x: snapToGrid(parentBlock.x),
+                  y: snapToGrid(parentBlock.y + parentEl.offsetHeight + 60),
+                  color: null,
+                });
+                renderFlowchart();
+              }
+            }),
+        );
+
+        document.querySelectorAll(".edit-block-btn").forEach(
+          (btn) =>
+            (btn.onclick = (e) => {
+              e.stopPropagation();
+              editingBlockId = btn.dataset.id;
+              document.getElementById("blockTextInput").value = blocks.find(
+                (b) => b.id === editingBlockId,
+              ).text;
+              showModal(document.getElementById("editBlockModal"));
+            }),
+        );
+
+        document.querySelectorAll(".color-edit-btn").forEach(
+          (btn) =>
+            (btn.onclick = (e) => {
+              e.stopPropagation();
+              currentColorBlockId = btn.dataset.id;
+              const palette = document.getElementById("colorPalette");
+              palette.innerHTML = "";
+              blockColors.forEach((color) => {
+                const opt = document.createElement("div");
+                opt.className = "color-option";
+                opt.style.backgroundColor = color;
+                opt.onclick = () => {
+                  blocks.find((b) => b.id === currentColorBlockId).color =
+                    color;
+                  renderFlowchart();
+                  hideModal(document.getElementById("colorPickerModal"));
+                };
+                palette.appendChild(opt);
+              });
+              showModal(document.getElementById("colorPickerModal"));
+            }),
+        );
+
+        document.querySelectorAll(".connect-block-btn").forEach(
+          (btn) =>
+            (btn.onclick = (e) => {
+              e.stopPropagation();
+              if (!isConnecting) {
+                isConnecting = true;
+                startBlockForConnection = btn.dataset.id;
+                renderFlowchart();
+              } else {
+                if (startBlockForConnection !== btn.dataset.id) {
+                  customConnections.push({
+                    id: generateId(),
+                    startBlockId: startBlockForConnection,
+                    endBlockId: btn.dataset.id,
+                  });
+                }
+                isConnecting = false;
+                startBlockForConnection = null;
+                renderFlowchart();
+              }
+            }),
+        );
+
+        document.querySelectorAll(".delete-block-btn").forEach(
+          (btn) =>
+            (btn.onclick = (e) => {
+              e.stopPropagation();
+              showConfirmationModal(
+                "Excluir Bloco",
+                "Excluir bloco e dependentes?",
+                () => {
+                  const idToDelete = btn.dataset.id;
+                  let ids = [idToDelete];
+                  let i = 0;
+                  while (i < ids.length) {
+                    blocks.forEach((b) => {
+                      if (b.parentId === ids[i] && !ids.includes(b.id))
+                        ids.push(b.id);
+                    });
+                    i++;
+                  }
+                  blocks = blocks.filter((b) => !ids.includes(b.id));
+                  customConnections = customConnections.filter(
+                    (c) =>
+                      !ids.includes(c.startBlockId) &&
+                      !ids.includes(c.endBlockId),
+                  );
+                  selectedBlocks.delete(idToDelete);
+                  renderFlowchart();
+                },
+              );
+            }),
+        );
+
+        // Movimentação individual e em massa (Seleção)
+        document.querySelectorAll(".block").forEach((el) => {
+          el.addEventListener("mousedown", (e) => {
+            if (
+              e.target.closest(".block-actions") ||
+              e.target.closest(".resize-handle")
+            )
+              return;
+
+            const blockId = el.id.replace("block-", "");
+
+            // Lógica de seleção por clique no bloco
+            if (!selectedBlocks.has(blockId)) {
+              if (!e.shiftKey && !e.ctrlKey) {
+                selectedBlocks.clear();
+              }
+              selectedBlocks.add(blockId);
+              updateSelectionVisuals();
+            }
+
+            isDraggingBlock = true;
+            selectedBlocksOffsets = [];
+
+            // Armazena a posição inicial (offset) de todos os blocos selecionados baseados no cursor
+            selectedBlocks.forEach((selId) => {
+              const b = blocks.find((x) => x.id === selId);
+              const selEl = document.getElementById(`block-${selId}`);
+              if (b && selEl) {
+                const rect = canvasArea.getBoundingClientRect();
+                selectedBlocksOffsets.push({
+                  block: b,
+                  el: selEl,
+                  offsetX: (e.clientX - rect.left) / zoomLevel - b.x,
+                  offsetY: (e.clientY - rect.top) / zoomLevel - b.y,
+                });
+                selEl.style.zIndex = 100;
+              }
+            });
+          });
+          el.ondragstart = () => false;
+        });
+      }
+
+      // O mousemove e mouseup de arrasto dos blocos agora operam no canvasArea / window
+      canvasArea.addEventListener("mousemove", (e) => {
+        if (!isDraggingBlock || selectedBlocksOffsets.length === 0) return;
+        const rect = canvasArea.getBoundingClientRect();
+        const mouseX = (e.clientX - rect.left) / zoomLevel;
+        const mouseY = (e.clientY - rect.top) / zoomLevel;
+
+        selectedBlocksOffsets.forEach((item) => {
+          let newX = mouseX - item.offsetX;
+          let newY = mouseY - item.offsetY;
+
+          item.block.x = snapToGrid(Math.max(0, newX));
+          item.block.y = snapToGrid(Math.max(0, newY));
+
+          item.el.style.left = `${item.block.x}px`;
+          item.el.style.top = `${item.block.y}px`;
+        });
+        drawAllLines();
+      });
+
+      window.addEventListener("mouseup", () => {
+        if (isDraggingBlock) {
+          isDraggingBlock = false;
+          selectedBlocksOffsets.forEach((item) => {
+            item.el.style.zIndex = 10;
+          });
+          selectedBlocksOffsets = [];
+          autoSave();
+        }
+      });
+
+      document
+        .getElementById("saveEditBlockBtn")
+        .addEventListener("click", () => {
+          if (editingBlockId)
+            blocks.find((b) => b.id === editingBlockId).text =
+              document.getElementById("blockTextInput").value;
+          renderFlowchart();
+          hideModal(document.getElementById("editBlockModal"));
+        });
+
+      document
+        .getElementById("cancelEditBlockBtn")
+        .addEventListener("click", () =>
+          hideModal(document.getElementById("editBlockModal")),
+        );
+      document
+        .getElementById("closeColorPickerBtn")
+        .addEventListener("click", () =>
+          hideModal(document.getElementById("colorPickerModal")),
+        );
+
+      const STORAGE_KEY = "flowchart_app_list";
+      function getLocalFlowcharts() {
+        return JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
+      }
+      function autoSave() {
+        if (currentFlowchartId)
+          saveToStorage(currentFlowchartId, currentFlowchartName, true);
+      }
+
+      function saveToStorage(id, name, silent = false) {
+        let data = getLocalFlowcharts();
+        data[id] = {
+          id,
+          name,
+          blocks: JSON.stringify(blocks),
+          customConnections: JSON.stringify(customConnections),
+          updatedAt: new Date().toISOString(),
+        };
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+        loadSidebarList();
+        if (!silent) alert("Salvo com sucesso!");
+      }
+
+      document
+        .getElementById("saveFlowchartBtn")
+        .addEventListener("click", () => {
+          if (!currentFlowchartId) {
+            document.getElementById("flowchartNameInput").value = "";
+            showModal(document.getElementById("saveFlowchartModal"));
+          } else {
+            saveToStorage(currentFlowchartId, currentFlowchartName);
+          }
+        });
+
+      document
+        .getElementById("confirmSaveFlowchartBtn")
+        .addEventListener("click", () => {
+          const name = document
+            .getElementById("flowchartNameInput")
+            .value.trim();
+          if (!name) return alert("Insira um nome!");
+          currentFlowchartId = generateId();
+          currentFlowchartName = name;
+          saveToStorage(currentFlowchartId, name);
+          hideModal(document.getElementById("saveFlowchartModal"));
+        });
+      document
+        .getElementById("cancelSaveFlowchartBtn")
+        .addEventListener("click", () =>
+          hideModal(document.getElementById("saveFlowchartModal")),
+        );
+
+      document
+        .getElementById("newFlowchartBtn")
+        .addEventListener("click", () => {
+          showConfirmationModal(
+            "Novo",
+            "Iniciar um novo esquema apagará o não salvo. Continuar?",
+            () => {
+              blocks = [];
+              customConnections = [];
+              selectedBlocks.clear();
+              currentFlowchartId = null;
+              currentFlowchartName = "";
+              renderFlowchart();
+            },
+          );
+        });
+
+      function loadSidebarList() {
+        const list = getLocalFlowcharts();
+        schemeList.innerHTML = "";
+        Object.values(list)
+          .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt))
+          .forEach((s) => {
+            const li = document.createElement("li");
+            li.className = "scheme-item";
+            li.innerHTML = `<span class="scheme-item-name">${s.name}</span>
+                    <div class="scheme-item-actions">
+                        <button class="scheme-item-action-btn" onclick="window.loadFlowchart('${s.id}')">Carregar</button>
+                        <button class="scheme-item-action-btn text-red-400" onclick="window.delFlowchart('${s.id}')">X</button>
+                    </div>`;
+            schemeList.appendChild(li);
+          });
+      }
+      window.loadFlowchart = (id) => {
+        const data = getLocalFlowcharts()[id];
+        if (data) {
+          blocks = JSON.parse(data.blocks);
+          customConnections = JSON.parse(data.customConnections);
+          selectedBlocks.clear();
+          currentFlowchartId = id;
+          currentFlowchartName = data.name;
+          renderFlowchart();
+        }
+      };
+      window.delFlowchart = (id) => {
+        showConfirmationModal("Excluir", "Excluir permanentemente?", () => {
+          let data = getLocalFlowcharts();
+          delete data[id];
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+          loadSidebarList();
+        });
+      };
+
+      function updateZoom() {
+        canvasArea.style.transform = `scale(${zoomLevel})`;
+        document.getElementById("zoomResetBtn").innerText =
+          `${Math.round(zoomLevel * 100)}%`;
+      }
+      document.getElementById("zoomInBtn").addEventListener("click", () => {
+        zoomLevel = Math.min(zoomLevel + 0.1, 2);
+        updateZoom();
+      });
+      document.getElementById("zoomOutBtn").addEventListener("click", () => {
+        zoomLevel = Math.max(zoomLevel - 0.1, 0.5);
+        updateZoom();
+      });
+      document.getElementById("zoomResetBtn").addEventListener("click", () => {
+        zoomLevel = 1;
+        updateZoom();
+      });
+
+      document
+        .getElementById("sidebarToggleBtn")
+        .addEventListener("click", () => {
+          document.getElementById("sidebar").classList.toggle("open");
+          document.getElementById("toggleIconOpen").classList.toggle("hidden");
+          document.getElementById("toggleIconClose").classList.toggle("hidden");
+        });
+
+      document
+        .getElementById("confirmActionBtn")
+        .addEventListener("click", () => {
+          if (confirmationCallback) confirmationCallback();
+          hideModal(confirmationModal);
+        });
+      document
+        .getElementById("cancelConfirmBtn")
+        .addEventListener("click", () => hideModal(confirmationModal));
+
+      window.onload = () => {
+        loadSidebarList();
+        renderFlowchart();
+      };
+      window.addEventListener("resize", drawAllLines);
+    </script>
+  </body>
+</html>
