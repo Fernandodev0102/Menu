@@ -1,0 +1,1615 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EconSimulador - Layout Planilha + Dashboard</title>
+    <style>
+        /* =========================================
+           ESTÉTICA ECONPESSOAL (Dark Mode Arredondado)
+           ========================================= */
+        :root {
+            --bg-dark: #121212;
+            --panel-bg: #1e1e1e;
+            --modal-bg: #181818;
+            --text-main: #ffffff;
+            --text-muted: #888888;
+            --accent-green: #00e676;
+            --accent-green-bg: rgba(0, 230, 118, 0.15);
+            --accent-red: #ff5252;
+            --accent-red-bg: rgba(255, 82, 82, 0.1);
+            --accent-blue: #2979ff;
+            --border-color: #333333;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            margin: 0;
+            padding: 20px;
+            padding-bottom: 80px;
+        }
+
+        /* Cabeçalho Superior */
+        .header-panel {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: var(--panel-bg);
+            padding: 15px 20px;
+            border-radius: 12px;
+            border-left: 5px solid var(--accent-blue);
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+        }
+
+        button {
+            background-color: var(--accent-green);
+            color: black;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.2s;
+            font-family: inherit;
+        }
+
+        button:hover { opacity: 0.85; }
+        .btn-outline { background-color: transparent; border: 1px solid var(--text-muted); color: var(--text-main); }
+        .btn-outline:hover { border-color: var(--text-main); background-color: rgba(255,255,255,0.05); }
+        .btn-blue { background-color: var(--accent-blue); color: white; }
+        
+        .btn-add-cycle { 
+            background-color: transparent; 
+            border: 2px dashed var(--text-muted); 
+            color: var(--text-muted); 
+            height: 100%; 
+            min-height: 250px; 
+            width: 300px; 
+            border-radius: 12px; 
+            font-size: 1.1em; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            cursor: pointer; 
+            transition: 0.3s; 
+        }
+        .btn-add-cycle:hover { border-color: var(--accent-green); color: var(--accent-green); background-color: var(--accent-green-bg); }
+
+        /* Board Horizontal */
+        .board {
+            display: flex;
+            gap: 20px;
+            overflow-x: auto;
+            padding-bottom: 20px;
+            align-items: flex-start;
+            min-height: 60vh;
+        }
+
+        /* Card Principal do Ciclo */
+        .cycle-wrapper {
+            position: relative;
+            width: 430px; 
+            flex-shrink: 0;
+            background-color: var(--panel-bg);
+            border-radius: 12px; 
+            border: 1px solid var(--border-color);
+            overflow: hidden; 
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .cycle-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: #252525;
+            padding: 12px 15px;
+            border-bottom: 1px solid var(--border-color);
+            gap: 15px; 
+        }
+
+        .cycle-header input {
+            font-weight: bold;
+            font-size: 1.1em;
+            flex: 1; 
+            color: var(--text-main);
+            text-align: left;
+            padding: 4px;
+        }
+
+        .btn-del-cycle {
+            background: var(--accent-red-bg);
+            color: var(--accent-red);
+            border: none;
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-size: 0.85em;
+            cursor: pointer;
+            flex-shrink: 0; 
+        }
+        .btn-del-cycle:hover { background: var(--accent-red); color: white; }
+
+        /* Resumo do Ciclo */
+        .cycle-summary-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            background-color: #1a1a1a;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        /* Tabelas Internas */
+        .sub-table-card {
+            margin: 15px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            overflow: visible;
+            background-color: rgba(255, 255, 255, 0.02);
+        }
+
+        .sub-table-header {
+            padding: 10px 12px;
+            font-size: 0.8em;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-top-left-radius: 7px;
+            border-top-right-radius: 7px;
+        }
+        
+        .header-income { background-color: var(--accent-green-bg); color: var(--accent-green); border-bottom: 1px solid var(--accent-green); }
+        .header-expense { background-color: var(--accent-red-bg); color: var(--accent-red); border-bottom: 1px solid var(--accent-red); }
+
+        .excel-table { width: 100%; border-collapse: collapse; font-size: 0.95em; table-layout: fixed; }
+        .excel-table th, .excel-table td { border-bottom: 1px solid var(--border-color); padding: 8px 10px; }
+        .excel-table tr:last-child td { border-bottom: none; }
+
+        /* Inputs camuflados genéricos */
+        input, select {
+            background: transparent;
+            border: none;
+            color: inherit;
+            font-family: inherit;
+            font-size: inherit;
+            font-weight: inherit;
+            outline: none;
+            border-radius: 4px;
+        }
+        input:focus { background-color: rgba(255,255,255,0.05); }
+        input:read-only { opacity: 1; cursor: default; }
+
+        /* Linhas Dinâmicas */
+        .row-income, .row-expense, .row-child-expense { transition: 0.2s; }
+        .row-income:hover { background-color: rgba(255, 255, 255, 0.05); }
+        .row-expense:hover, .row-child-expense:hover { background-color: rgba(255, 255, 255, 0.04); }
+
+        /* Estética do Sub-gasto (Tree View) */
+        .tree-line {
+            position: absolute;
+            left: 14px;
+            top: -15px;
+            height: 35px;
+            width: 14px;
+            border-left: 2px solid var(--border-color);
+            border-bottom: 2px solid var(--border-color);
+            border-bottom-left-radius: 6px;
+            pointer-events: none;
+        }
+
+        /* Botões Base e Adição */
+        .btn-add-expense, .btn-add-income { 
+            width: 100%; text-align: center; font-size: 0.85em; cursor: pointer; padding: 10px 0; background-color: transparent; transition: 0.2s; 
+        }
+        .btn-add-expense { color: var(--text-muted); }
+        .btn-add-expense:hover { background-color: rgba(255,255,255,0.05); color: white; }
+        .btn-add-income { color: var(--accent-green); opacity: 0.8; }
+        .btn-add-income:hover { background-color: var(--accent-green-bg); opacity: 1; }
+
+        /* Alinhamento de Células */
+        .td-name { position: relative; padding: 5px !important; }
+        
+        /* Coluna de valor ampliada para caber números grandes + botão de expandir sem cortar */
+        .td-value { 
+            width: 138px; 
+            padding: 5px 30px 5px 4px !important; 
+            position: relative; 
+        }
+        .td-value input { 
+            width: 100%; 
+            text-align: right !important; 
+            font-weight: bold; 
+            padding: 6px 2px;
+        }
+        
+        .row-expense .td-value input, .row-child-expense .td-value input { color: var(--accent-red); }
+        .row-income .td-value input { color: var(--accent-green); }
+
+        /* Inputs perfeitamente alinhados verticalmente em todas as linhas de gastos */
+        .income-input { 
+            width: 100%; 
+            padding: 8px 5px 8px 66px !important; 
+            text-align: left !important; 
+            color: var(--text-main); 
+        }
+        .expense-input { 
+            width: 100%; 
+            padding: 8px 5px 8px 82px !important; 
+            text-align: left !important; 
+            color: var(--text-main); 
+        }
+        .child-input { 
+            padding: 8px 5px 8px 82px !important; 
+            font-size: 0.92em; 
+            color: var(--text-muted) !important; 
+        }
+
+        /* Ícone Toggle Movido para a direita dos valores */
+        .toggle-btn {
+            position: absolute;
+            right: 5px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: var(--text-muted);
+            font-size: 0.7em;
+            border-radius: 4px;
+            transition: 0.2s;
+            z-index: 5;
+        }
+        .toggle-btn:hover { background-color: rgba(255,255,255,0.1); color: var(--text-main); }
+
+        /* Ações Flutuantes na Linha */
+        .row-actions {
+            position: absolute; 
+            top: 50%; 
+            transform: translateY(-50%); 
+            display: flex; 
+            align-items: center; 
+            gap: 3px; 
+            opacity: 0; 
+            transition: 0.2s; 
+            z-index: 15;
+        }
+        .row-expense:hover .row-actions, 
+        .row-income:hover .row-actions, 
+        .row-child-expense:hover .row-actions,
+        .row-actions.menu-open { 
+            opacity: 1; 
+        }
+        
+        .actions-income { left: 6px; }
+        .actions-expense { left: 6px; } 
+        .actions-child { left: 34px; }
+
+        .arrows-stack { display: flex; flex-direction: column; gap: 2px; }
+
+        .btn-action { background: rgba(255, 255, 255, 0.06); border: none; cursor: pointer; border-radius: 4px; color: var(--text-muted); display: flex; align-items: center; justify-content: center; transition: 0.2s; }
+        .btn-action:hover { background-color: rgba(255, 255, 255, 0.2); color: white; }
+        .btn-del-row { padding: 5px; font-size: 0.85em; }
+        .btn-del-row:hover { background-color: var(--accent-red); color: white; }
+        .btn-gear-row { padding: 5px; font-size: 0.85em; }
+        .btn-gear-row:hover, .btn-gear-row.active { background-color: var(--accent-blue); color: white; }
+        .btn-arrow { padding: 2px 4px; font-size: 0.55em; line-height: 1; }
+        .btn-add-child { padding: 4px 6px; font-size: 0.95em; }
+        .btn-add-child:hover { background-color: var(--accent-red); color: white; }
+
+        /* Popover Unificado de Configuração da Linha (Editar / Excluir) */
+        .gear-wrapper {
+            position: relative;
+            display: inline-flex;
+        }
+        .row-gear-menu {
+            position: absolute;
+            top: calc(100% + 4px);
+            left: 0;
+            background-color: #262626;
+            border: 1px solid #444444;
+            border-radius: 8px;
+            padding: 4px;
+            min-width: 120px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.7);
+            display: none;
+            flex-direction: column;
+            gap: 2px;
+            z-index: 100;
+        }
+        .row-gear-menu.open {
+            display: flex;
+        }
+        .gear-menu-item {
+            background: transparent;
+            border: none;
+            color: var(--text-main);
+            padding: 7px 10px;
+            border-radius: 5px;
+            font-size: 0.82em;
+            font-weight: 600;
+            text-align: left;
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            cursor: pointer;
+            width: 100%;
+        }
+        .gear-menu-item:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+            opacity: 1;
+        }
+        .gear-menu-item.danger {
+            color: var(--accent-red);
+        }
+        .gear-menu-item.danger:hover {
+            background-color: var(--accent-red-bg);
+        }
+
+        /* Rodapé de Saldo */
+        .remainder-container { 
+            text-align: center; padding: 15px; background-color: #1a1a1a; margin-top: auto; border-top: 1px solid var(--border-color);
+        }
+        .remainder-value { font-size: 1.2em; font-weight: bold; margin-bottom: 8px; }
+        .text-green { color: var(--accent-green); }
+        .text-red { color: var(--accent-red); }
+
+        .carryover-toggle { display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 0.8em; color: var(--text-muted); cursor: pointer; }
+        .carryover-toggle input[type="checkbox"] { width: 14px; height: 14px; cursor: pointer; }
+        .carryover-toggle:hover { color: var(--text-main); }
+
+        /* =========================================
+           BOTÃO FLUTUANTE DASHBOARD
+           ========================================= */
+        .fab-dashboard {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            background-color: var(--accent-blue);
+            color: white;
+            padding: 14px 22px;
+            border-radius: 50px;
+            font-size: 1em;
+            font-weight: bold;
+            box-shadow: 0 6px 20px rgba(41, 121, 255, 0.45);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            z-index: 900;
+            border: 1px solid rgba(255,255,255,0.15);
+        }
+        .fab-dashboard:hover {
+            transform: translateY(-2px);
+            opacity: 1;
+            box-shadow: 0 8px 25px rgba(41, 121, 255, 0.65);
+        }
+
+        /* =========================================
+           MODAIS (POP-UP DE GASTOS & DASHBOARD)
+           ========================================= */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.78);
+            backdrop-filter: blur(4px);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            padding: 20px;
+        }
+        .modal-overlay.active { display: flex; }
+
+        .modal-card {
+            background-color: var(--modal-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            width: 100%;
+            max-width: 440px;
+            box-shadow: 0 15px 40px rgba(0,0,0,0.6);
+            overflow: hidden;
+            animation: modalFadeIn 0.2s ease-out;
+        }
+
+        .modal-card.dashboard-card {
+            max-width: 820px;
+            max-height: 90vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        @keyframes modalFadeIn {
+            from { opacity: 0; transform: scale(0.96); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        .modal-header {
+            padding: 16px 20px;
+            background-color: #222222;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .modal-header h2 { margin: 0; font-size: 1.15em; }
+
+        .btn-close-modal {
+            background: transparent;
+            color: var(--text-muted);
+            font-size: 1.2em;
+            padding: 4px 8px;
+        }
+        .btn-close-modal:hover { color: white; background: rgba(255,255,255,0.1); }
+
+        .modal-body {
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .form-group { margin-bottom: 16px; }
+        .form-group label {
+            display: block;
+            font-size: 0.85em;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+            font-weight: 600;
+        }
+        .form-control {
+            width: 100%;
+            background-color: #252525;
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            padding: 10px 12px;
+            border-radius: 8px;
+            font-size: 0.95em;
+        }
+        .form-control:focus {
+            border-color: var(--accent-blue);
+            background-color: #2a2a2a;
+        }
+        .form-control:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .modal-footer {
+            padding: 14px 20px;
+            background-color: #1f1f1f;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        /* =========================================
+           ESTILOS INTERNOS DO DASHBOARD
+           ========================================= */
+        .dash-tabs {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        .dash-tab-btn {
+            background: rgba(255,255,255,0.06);
+            color: var(--text-muted);
+            padding: 7px 14px;
+            border-radius: 8px;
+            font-size: 0.9em;
+        }
+        .dash-tab-btn.active {
+            background: var(--accent-blue);
+            color: white;
+        }
+
+        .cycle-filter-bar {
+            background: #202020;
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 14px;
+            margin-bottom: 20px;
+        }
+        .cycle-filter-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            font-size: 0.85em;
+            color: var(--text-muted);
+        }
+        .cycle-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .cycle-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: 20px;
+            background: #2a2a2a;
+            border: 1px solid var(--border-color);
+            color: var(--text-muted);
+            font-size: 0.88em;
+            cursor: pointer;
+            user-select: none;
+            transition: 0.2s;
+        }
+        .cycle-chip.selected {
+            background: rgba(41, 121, 255, 0.2);
+            border-color: var(--accent-blue);
+            color: white;
+            font-weight: 600;
+        }
+
+        .dash-kpi-card {
+            background: linear-gradient(135deg, #222222 0%, #1a1a1a 100%);
+            border: 1px solid var(--border-color);
+            border-left: 4px solid var(--accent-red);
+            border-radius: 10px;
+            padding: 16px 20px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .dash-kpi-title { font-size: 0.85em; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+        .dash-kpi-value { font-size: 1.7em; font-weight: bold; color: var(--accent-red); margin-top: 4px; }
+
+        .category-breakdown-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .cat-stat-item {
+            background: #202020;
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            overflow: hidden;
+            transition: 0.2s;
+        }
+        .cat-stat-header {
+            padding: 12px 15px;
+            cursor: pointer;
+            user-select: none;
+            transition: background-color 0.2s;
+        }
+        .cat-stat-header:hover {
+            background-color: rgba(255, 255, 255, 0.03);
+        }
+        .cat-stat-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            font-size: 0.95em;
+        }
+        .cat-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: bold;
+        }
+        .cat-arrow {
+            color: var(--text-muted);
+            font-size: 0.72em;
+            width: 14px;
+            display: inline-flex;
+            justify-content: center;
+        }
+        .cat-count-tag {
+            font-size: 0.78em;
+            font-weight: normal;
+            color: var(--text-muted);
+            background: rgba(255,255,255,0.06);
+            padding: 2px 7px;
+            border-radius: 10px;
+        }
+        .cat-dot {
+            width: 11px;
+            height: 11px;
+            border-radius: 50%;
+            display: inline-block;
+            flex-shrink: 0;
+        }
+        .cat-bar-bg {
+            width: 100%;
+            height: 8px;
+            background: #2e2e2e;
+            border-radius: 6px;
+            overflow: hidden;
+        }
+        .cat-bar-fill {
+            height: 100%;
+            border-radius: 6px;
+            transition: width 0.35s ease;
+        }
+
+        /* Tabela Detalhada Expansível dentro da Categoria no Dashboard */
+        .cat-details-panel {
+            background-color: #161616;
+            border-top: 1px solid var(--border-color);
+            padding: 6px 15px 10px 15px;
+        }
+        .cat-details-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.88em;
+        }
+        .cat-details-table th {
+            text-align: left;
+            color: var(--text-muted);
+            font-size: 0.78em;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 6px 4px;
+            border-bottom: 1px solid #2a2a2a;
+        }
+        .cat-details-table th:last-child {
+            text-align: right;
+        }
+        .cat-details-table td {
+            padding: 7px 4px;
+            border-bottom: 1px solid rgba(255,255,255,0.04);
+            color: #dddddd;
+        }
+        .cat-details-table tr:last-child td {
+            border-bottom: none;
+        }
+        .cat-detail-cycle {
+            color: var(--text-muted);
+            font-size: 0.9em;
+        }
+        .cat-detail-parent {
+            color: var(--text-muted);
+            font-size: 0.85em;
+            font-style: italic;
+        }
+        .cat-detail-amount {
+            text-align: right;
+            font-weight: bold;
+            color: var(--accent-red);
+            white-space: nowrap;
+        }
+
+        /* Configurações de Categorias */
+        .cat-create-box {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            background: #202020;
+            padding: 12px;
+            border-radius: 10px;
+            border: 1px solid var(--border-color);
+        }
+        .color-picker-input {
+            width: 44px;
+            height: 40px;
+            padding: 2px;
+            border-radius: 8px;
+            background: #2a2a2a;
+            border: 1px solid var(--border-color);
+            cursor: pointer;
+        }
+        .cat-manage-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .cat-manage-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: #202020;
+            padding: 10px 12px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+        .cat-manage-row input[type="text"] {
+            flex: 1;
+            background: #282828;
+            padding: 7px 10px;
+            border-radius: 6px;
+            border: 1px solid transparent;
+            color: white;
+        }
+        .cat-manage-row input[type="text"]:focus {
+            border-color: var(--accent-blue);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header-panel">
+        <div>
+            <h1 style="margin:0; font-size: 1.5em; color: #2979ff;">EconSimulador</h1>
+            <input type="text" id="main-title" value="Contas a pagar (Até 27/03/2026)" style="font-size: 1em; color: var(--text-muted); margin-top: 5px; border-bottom: 1px dashed #555; display: inline-block; width: 300px;" onclick="this.select()" onchange="updateMainTitle(this.value)">
+        </div>
+        <div>
+            <button class="btn-outline" onclick="resetSimulator()">🧹 Limpar Planilha</button>
+        </div>
+    </div>
+
+    <div class="board" id="board"></div>
+
+    <!-- Botão Flutuante do Dashboard -->
+    <button class="fab-dashboard" onclick="openDashboardModal()">
+        <span>📊</span> Dashboard
+    </button>
+
+    <!-- =========================================
+         MODAL: ADICIONAR / EDITAR GASTO
+         ========================================= -->
+    <div class="modal-overlay" id="expense-modal" onclick="closeModalOnBackdrop(event, 'expense-modal')">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h2 id="expense-modal-title">Nova Saída</h2>
+                <button class="btn-close-modal" onclick="closeExpenseModal()">✕</button>
+            </div>
+            <form id="expense-form" onsubmit="saveExpenseModal(event)">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="modal-exp-name">Nome do Gasto</label>
+                        <input type="text" id="modal-exp-name" class="form-control" placeholder="Ex: Aluguel, Supermercado, Luz..." required>
+                    </div>
+                    <div class="form-group">
+                        <label for="modal-exp-amount">Valor (R$)</label>
+                        <input type="number" step="0.01" min="0" id="modal-exp-amount" class="form-control" placeholder="0.00" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="modal-exp-category">Categoria</label>
+                        <select id="modal-exp-category" class="form-control"></select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-outline" onclick="closeExpenseModal()">Cancelar</button>
+                    <button type="submit">Salvar Gasto</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- =========================================
+         MODAL: DASHBOARD & CONFIGURAÇÕES
+         ========================================= -->
+    <div class="modal-overlay" id="dashboard-modal" onclick="closeModalOnBackdrop(event, 'dashboard-modal')">
+        <div class="modal-card dashboard-card">
+            <div class="modal-header">
+                <div class="dash-tabs">
+                    <button class="dash-tab-btn active" id="tab-overview-btn" onclick="switchDashboardTab('overview')">📊 Visão por Categorias</button>
+                    <button class="dash-tab-btn" id="tab-settings-btn" onclick="switchDashboardTab('settings')">⚙️ Configurações</button>
+                </div>
+                <button class="btn-close-modal" onclick="closeDashboardModal()">✕</button>
+            </div>
+
+            <div class="modal-body">
+                <!-- ABA 1: VISÃO GERAL -->
+                <div id="dash-view-overview">
+                    <div class="cycle-filter-bar">
+                        <div class="cycle-filter-header">
+                            <span><strong>Filtrar Ciclos:</strong> Selecione os meses que deseja somar</span>
+                            <div style="display: flex; gap: 8px;">
+                                <button type="button" class="btn-outline" style="padding: 3px 8px; font-size: 0.8em;" onclick="selectAllCycles(true)">Todos</button>
+                                <button type="button" class="btn-outline" style="padding: 3px 8px; font-size: 0.8em;" onclick="selectAllCycles(false)">Limpar</button>
+                            </div>
+                        </div>
+                        <div class="cycle-chips" id="dash-cycle-chips"></div>
+                    </div>
+
+                    <div class="dash-kpi-card">
+                        <div>
+                            <div class="dash-kpi-title">Total de Saídas (Ciclos Selecionados)</div>
+                            <div class="dash-kpi-value" id="dash-total-spent">R$ 0,00</div>
+                        </div>
+                        <div style="text-align: right; color: var(--text-muted); font-size: 0.85em;" id="dash-selected-count">
+                            0 ciclos selecionados
+                        </div>
+                    </div>
+
+                    <div class="category-breakdown-list" id="dash-category-list"></div>
+                </div>
+
+                <!-- ABA 2: CONFIGURAÇÕES DE CATEGORIAS -->
+                <div id="dash-view-settings" style="display: none;">
+                    <p style="color: var(--text-muted); font-size: 0.9em; margin-top: 0;">
+                        Crie, edite ou exclua as categorias utilizadas nos seus gastos.
+                    </p>
+
+                    <div class="cat-create-box">
+                        <input type="color" id="new-cat-color" class="color-picker-input" value="#2979ff" title="Escolher cor da categoria">
+                        <input type="text" id="new-cat-name" class="form-control" placeholder="Nome da nova categoria (ex: Educação, Assinaturas...)">
+                        <button type="button" class="btn-blue" onclick="createCategory()">+ Criar</button>
+                    </div>
+
+                    <div class="cat-manage-list" id="settings-category-list"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function generateId() { return Math.random().toString(36).substr(2, 9); }
+
+        const DEFAULT_CATEGORIES = [
+            { id: 'cat_moradia', name: 'Moradia', color: '#2979ff' },
+            { id: 'cat_alimentacao', name: 'Alimentação', color: '#00e676' },
+            { id: 'cat_transporte', name: 'Transporte', color: '#ffab00' },
+            { id: 'cat_saude', name: 'Saúde', color: '#ff5252' },
+            { id: 'cat_lazer', name: 'Lazer', color: '#d500f9' },
+            { id: 'cat_outros', name: 'Outros', color: '#888888' }
+        ];
+
+        let defaultState = {
+            mainTitle: "Simulação de Longo Prazo",
+            categories: JSON.parse(JSON.stringify(DEFAULT_CATEGORIES)),
+            cycles: [
+                { 
+                    id: generateId(), 
+                    title: "Mês 1", 
+                    carryOver: true, 
+                    incomes: [{ id: generateId(), name: "Renda Base", amount: 2500 }], 
+                    expenses: [{ id: generateId(), name: "Aluguel", amount: 1000, categoryId: 'cat_moradia', children: [], isExpanded: true }] 
+                }
+            ]
+        };
+
+        let appState = JSON.parse(localStorage.getItem('econSim_excel')) || defaultState;
+
+        // Estado auxiliar para os modais e expansões
+        let currentModalContext = null;
+        let selectedCycleIds = new Set();
+        let expandedDashCategoryIds = new Set();
+        let openGearMenuId = null;
+
+        function ensureDataIntegrity() {
+            if (!appState.categories || appState.categories.length === 0) {
+                appState.categories = JSON.parse(JSON.stringify(DEFAULT_CATEGORIES));
+            }
+            const fallbackCatId = appState.categories[appState.categories.length - 1].id;
+            appState.cycles.forEach(c => {
+                if (!c.incomes) c.incomes = [];
+                if (!c.expenses) c.expenses = [];
+                c.expenses.forEach(e => {
+                    if (!e.categoryId) e.categoryId = fallbackCatId;
+                    if (!e.children) e.children = [];
+                    e.children.forEach(ch => {
+                        if (!ch.categoryId) ch.categoryId = e.categoryId || fallbackCatId;
+                    });
+                });
+            });
+        }
+
+        function init() {
+            ensureDataIntegrity();
+            document.getElementById('main-title').value = appState.mainTitle;
+            selectedCycleIds = new Set(appState.cycles.map(c => c.id));
+            calculateAndRender();
+        }
+
+        // Fecha o menu de engrenagem ao clicar fora
+        document.addEventListener('click', (e) => {
+            if (openGearMenuId && !e.target.closest('.gear-wrapper')) {
+                openGearMenuId = null;
+                renderBoard();
+            }
+        });
+
+        window.toggleGearMenu = (e, menuKey) => {
+            e.stopPropagation();
+            openGearMenuId = (openGearMenuId === menuKey) ? null : menuKey;
+            renderBoard();
+        };
+
+        function calculateAndRender() {
+            let previousRemainder = 0;
+
+            appState.cycles.forEach(cycle => {
+                if (!cycle.incomes) cycle.incomes = [];
+                if (cycle.carryOver === undefined) cycle.carryOver = true; 
+
+                cycle.totalIncomes = cycle.incomes.reduce((sum, inc) => sum + inc.amount, 0);
+                cycle.available = previousRemainder + cycle.totalIncomes;
+                
+                cycle.expenses.forEach(exp => {
+                    if (!exp.children) exp.children = [];
+                    if (exp.isExpanded === undefined) exp.isExpanded = true;
+                    
+                    if (exp.children.length > 0) {
+                        exp.amount = exp.children.reduce((childSum, child) => childSum + child.amount, 0);
+                    }
+                });
+
+                cycle.totalExpenses = cycle.expenses.reduce((sum, exp) => sum + exp.amount, 0);
+                cycle.remainder = cycle.available - cycle.totalExpenses;
+                
+                previousRemainder = cycle.carryOver ? cycle.remainder : 0;
+            });
+
+            renderBoard();
+            localStorage.setItem('econSim_excel', JSON.stringify(appState));
+        }
+
+        function getCategoryById(catId) {
+            return appState.categories.find(c => c.id === catId) || { name: 'Outros', color: '#888888' };
+        }
+
+        function renderBoard() {
+            const board = document.getElementById('board');
+            board.innerHTML = '';
+
+            appState.cycles.forEach(cycle => {
+                let incomesHtml = '';
+                let expensesHtml = '';
+                
+                cycle.incomes.forEach((inc) => {
+                    incomesHtml += `
+                        <tr class="row-income">
+                            <td class="td-name">
+                                <div class="row-actions actions-income">
+                                    <button class="btn-action btn-del-row" onclick="delIncome('${cycle.id}', '${inc.id}')" title="Excluir">🗑️</button>
+                                    <div class="arrows-stack">
+                                        <button class="btn-action btn-arrow" onclick="moveIncome('${cycle.id}', '${inc.id}', 'up')">▲</button>
+                                        <button class="btn-action btn-arrow" onclick="moveIncome('${cycle.id}', '${inc.id}', 'down')">▼</button>
+                                    </div>
+                                </div>
+                                <input type="text" class="income-input" placeholder="Nova Entrada" value="${escapeHtml(inc.name)}" onclick="this.select()" onchange="editIncomeName('${cycle.id}', '${inc.id}', this.value)">
+                            </td>
+                            <td class="td-value"><input type="number" step="0.01" value="${inc.amount.toFixed(2)}" onclick="this.select()" onchange="editIncomeAmount('${cycle.id}', '${inc.id}', this.value)"></td>
+                        </tr>
+                    `;
+                });
+                
+                cycle.expenses.forEach((exp) => {
+                    const hasChildren = exp.children && exp.children.length > 0;
+                    const readonlyAttr = hasChildren ? 'readonly title="Soma automática dos sub-gastos"' : '';
+                    const catObj = getCategoryById(exp.categoryId);
+                    
+                    let toggleIconHtml = '';
+                    if (hasChildren) {
+                        const icon = exp.isExpanded ? '▼' : '▶';
+                        toggleIconHtml = `<div class="toggle-btn" onclick="toggleExpand('${cycle.id}', '${exp.id}')">${icon}</div>`;
+                    }
+
+                    const gearKey = `exp_${exp.id}`;
+                    const isMenuOpen = openGearMenuId === gearKey;
+                    const editOptionHtml = !hasChildren 
+                        ? `<button type="button" class="gear-menu-item" onclick="openExpenseModal('edit-expense', '${cycle.id}', '${exp.id}')">✏️ Editar</button>` 
+                        : '';
+
+                    const rowTitle = hasChildren 
+                        ? 'Grupo de gastos (soma automática dos sub-gastos)' 
+                        : `Categoria: ${escapeHtml(catObj.name)}`;
+
+                    expensesHtml += `
+                        <tr class="row-expense" title="${rowTitle}">
+                            <td class="td-name">
+                                <div class="row-actions actions-expense ${isMenuOpen ? 'menu-open' : ''}">
+                                    <div class="gear-wrapper">
+                                        <button type="button" class="btn-action btn-gear-row ${isMenuOpen ? 'active' : ''}" onclick="toggleGearMenu(event, '${gearKey}')" title="Opções do Gasto">⚙️</button>
+                                        <div class="row-gear-menu ${isMenuOpen ? 'open' : ''}">
+                                            ${editOptionHtml}
+                                            <button type="button" class="gear-menu-item danger" onclick="delExpense('${cycle.id}', '${exp.id}')">🗑️ Excluir</button>
+                                        </div>
+                                    </div>
+                                    <div class="arrows-stack">
+                                        <button class="btn-action btn-arrow" onclick="moveExpense('${cycle.id}', '${exp.id}', 'up')">▲</button>
+                                        <button class="btn-action btn-arrow" onclick="moveExpense('${cycle.id}', '${exp.id}', 'down')">▼</button>
+                                    </div>
+                                    <button class="btn-action btn-add-child" onclick="openExpenseModal('add-child', '${cycle.id}', '${exp.id}')" title="Criar Sub-gasto">↳</button>
+                                </div>
+                                <input type="text" class="expense-input" placeholder="Novo Gasto" value="${escapeHtml(exp.name)}" onclick="this.select()" onchange="editExpenseName('${cycle.id}', '${exp.id}', this.value)">
+                            </td>
+                            <td class="td-value">
+                                <input type="number" step="0.01" value="${exp.amount.toFixed(2)}" ${readonlyAttr} onclick="this.select()" onchange="editExpenseAmount('${cycle.id}', '${exp.id}', this.value)">
+                                ${toggleIconHtml}
+                            </td>
+                        </tr>
+                    `;
+
+                    if (hasChildren && exp.isExpanded) {
+                        exp.children.forEach(child => {
+                            const childCatObj = getCategoryById(child.categoryId);
+                            const childGearKey = `child_${child.id}`;
+                            const isChildMenuOpen = openGearMenuId === childGearKey;
+
+                            expensesHtml += `
+                                <tr class="row-child-expense" title="Categoria: ${escapeHtml(childCatObj.name)}">
+                                    <td class="td-name">
+                                        <div class="tree-line"></div>
+                                        <div class="row-actions actions-child ${isChildMenuOpen ? 'menu-open' : ''}">
+                                            <div class="gear-wrapper">
+                                                <button type="button" class="btn-action btn-gear-row ${isChildMenuOpen ? 'active' : ''}" onclick="toggleGearMenu(event, '${childGearKey}')" title="Opções do Sub-gasto">⚙️</button>
+                                                <div class="row-gear-menu ${isChildMenuOpen ? 'open' : ''}">
+                                                    <button type="button" class="gear-menu-item" onclick="openExpenseModal('edit-child', '${cycle.id}', '${exp.id}', '${child.id}')">✏️ Editar</button>
+                                                    <button type="button" class="gear-menu-item danger" onclick="delChildExpense('${cycle.id}', '${exp.id}', '${child.id}')">🗑️ Excluir</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <input type="text" class="expense-input child-input" placeholder="Sub-gasto" value="${escapeHtml(child.name)}" onclick="this.select()" onchange="editChildExpenseName('${cycle.id}', '${exp.id}', '${child.id}', this.value)">
+                                    </td>
+                                    <td class="td-value">
+                                        <input type="number" step="0.01" value="${child.amount.toFixed(2)}" onclick="this.select()" onchange="editChildExpenseAmount('${cycle.id}', '${exp.id}', '${child.id}', this.value)">
+                                    </td>
+                                </tr>
+                            `;
+                        });
+                    }
+                });
+
+                const remainderClass = cycle.remainder >= 0 ? 'text-green' : 'text-red';
+                const isChecked = cycle.carryOver ? 'checked' : '';
+                
+                board.innerHTML += `
+                    <div class="cycle-wrapper">
+                        <div class="cycle-header">
+                            <input type="text" value="${escapeHtml(cycle.title)}" onclick="this.select()" onchange="editCycleTitle('${cycle.id}', this.value)">
+                            <button class="btn-del-cycle" onclick="delCycle('${cycle.id}')" title="Apagar Coluna Inteira">🗑️ Ciclo</button>
+                        </div>
+                        
+                        <div class="cycle-summary-top">
+                            <span style="color: var(--text-muted); font-size: 0.9em; text-transform: uppercase; font-weight: bold;">Disponível Total:</span>
+                            <span style="color: var(--accent-green); font-size: 1.2em; font-weight: bold;">R$ ${cycle.available.toFixed(2)}</span>
+                        </div>
+
+                        <div class="sub-table-card">
+                            <div class="sub-table-header header-income">
+                                <span>⬇️ Entradas</span>
+                                <span>R$ ${cycle.totalIncomes.toFixed(2)}</span>
+                            </div>
+                            <table class="excel-table">
+                                <tbody>
+                                    ${incomesHtml}
+                                    <tr>
+                                        <td colspan="2" class="btn-add-income" onclick="addIncome('${cycle.id}')">+ Adicionar Entrada</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="sub-table-card">
+                            <div class="sub-table-header header-expense">
+                                <span>⬆️ Saídas</span>
+                                <span>R$ ${cycle.totalExpenses.toFixed(2)}</span>
+                            </div>
+                            <table class="excel-table">
+                                <tbody>
+                                    ${expensesHtml}
+                                    <tr>
+                                        <td colspan="2" class="btn-add-expense" onclick="openExpenseModal('add-expense', '${cycle.id}')">+ Adicionar Saída</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="remainder-container">
+                            <div class="remainder-value ${remainderClass}">Sobra Final: R$ ${cycle.remainder.toFixed(2)}</div>
+                            <label class="carryover-toggle">
+                                <input type="checkbox" ${isChecked} onchange="toggleCarryOver('${cycle.id}', this.checked)">
+                                Considerar saldo para o próximo ciclo
+                            </label>
+                        </div>
+                    </div>
+                `;
+            });
+
+            board.innerHTML += `
+                <div class="cycle-wrapper" style="background: transparent; border: none; box-shadow: none; width: 300px; display: block;">
+                    <button class="btn-add-cycle" onclick="addCycle()">+ Novo Ciclo (Próximo Mês)</button>
+                </div>
+            `;
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            return String(text)
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        /* =========================================
+           CONTROLE DO MODAL DE GASTOS
+           ========================================= */
+        window.openExpenseModal = (mode, cycleId, expenseId = null, childId = null) => {
+            openGearMenuId = null;
+            currentModalContext = { mode, cycleId, expenseId, childId };
+
+            const titleEl = document.getElementById('expense-modal-title');
+            const nameInput = document.getElementById('modal-exp-name');
+            const amountInput = document.getElementById('modal-exp-amount');
+            const categorySelect = document.getElementById('modal-exp-category');
+
+            categorySelect.innerHTML = appState.categories.map(cat => 
+                `<option value="${cat.id}">${escapeHtml(cat.name)}</option>`
+            ).join('');
+
+            const cycle = appState.cycles.find(c => c.id === cycleId);
+
+            if (mode === 'add-expense') {
+                titleEl.textContent = 'Nova Saída';
+                nameInput.value = '';
+                amountInput.value = '';
+                categorySelect.value = appState.categories[0]?.id || '';
+            } else if (mode === 'add-child') {
+                const parent = cycle.expenses.find(e => e.id === expenseId);
+                titleEl.textContent = `Novo Sub-gasto em "${parent.name || 'Saída'}"`;
+                nameInput.value = '';
+                amountInput.value = '';
+                categorySelect.value = parent.categoryId || appState.categories[0]?.id || '';
+            } else if (mode === 'edit-expense') {
+                const exp = cycle.expenses.find(e => e.id === expenseId);
+                titleEl.textContent = 'Editar Saída';
+                nameInput.value = exp.name;
+                amountInput.value = exp.amount.toFixed(2);
+                categorySelect.value = exp.categoryId || appState.categories[0]?.id || '';
+            } else if (mode === 'edit-child') {
+                const parent = cycle.expenses.find(e => e.id === expenseId);
+                const child = parent.children.find(ch => ch.id === childId);
+                titleEl.textContent = 'Editar Sub-gasto';
+                nameInput.value = child.name;
+                amountInput.value = child.amount.toFixed(2);
+                categorySelect.value = child.categoryId || appState.categories[0]?.id || '';
+            }
+
+            document.getElementById('expense-modal').classList.add('active');
+            setTimeout(() => nameInput.focus(), 50);
+        };
+
+        window.closeExpenseModal = () => {
+            document.getElementById('expense-modal').classList.remove('active');
+            currentModalContext = null;
+        };
+
+        window.saveExpenseModal = (event) => {
+            event.preventDefault();
+            if (!currentModalContext) return;
+
+            const { mode, cycleId, expenseId, childId } = currentModalContext;
+            const name = document.getElementById('modal-exp-name').value.trim();
+            const amount = parseFloat(document.getElementById('modal-exp-amount').value) || 0;
+            const categoryId = document.getElementById('modal-exp-category').value;
+
+            const cycle = appState.cycles.find(c => c.id === cycleId);
+
+            if (mode === 'add-expense') {
+                cycle.expenses.push({
+                    id: generateId(),
+                    name,
+                    amount,
+                    categoryId,
+                    children: [],
+                    isExpanded: true
+                });
+            } else if (mode === 'add-child') {
+                const parent = cycle.expenses.find(e => e.id === expenseId);
+                if (!parent.children) parent.children = [];
+                parent.isExpanded = true;
+                parent.children.push({
+                    id: generateId(),
+                    name,
+                    amount,
+                    categoryId
+                });
+            } else if (mode === 'edit-expense') {
+                const exp = cycle.expenses.find(e => e.id === expenseId);
+                exp.name = name;
+                exp.categoryId = categoryId;
+                if (!exp.children || exp.children.length === 0) {
+                    exp.amount = amount;
+                }
+            } else if (mode === 'edit-child') {
+                const parent = cycle.expenses.find(e => e.id === expenseId);
+                const child = parent.children.find(ch => ch.id === childId);
+                child.name = name;
+                child.amount = amount;
+                child.categoryId = categoryId;
+            }
+
+            closeExpenseModal();
+            calculateAndRender();
+        };
+
+        /* =========================================
+           CONTROLE DO DASHBOARD E CONFIGURAÇÕES
+           ========================================= */
+        window.openDashboardModal = () => {
+            openGearMenuId = null;
+            const validIds = new Set(appState.cycles.map(c => c.id));
+            selectedCycleIds = new Set([...selectedCycleIds].filter(id => validIds.has(id)));
+            if (selectedCycleIds.size === 0 && appState.cycles.length > 0) {
+                appState.cycles.forEach(c => selectedCycleIds.add(c.id));
+            }
+
+            switchDashboardTab('overview');
+            document.getElementById('dashboard-modal').classList.add('active');
+        };
+
+        window.closeDashboardModal = () => {
+            document.getElementById('dashboard-modal').classList.remove('active');
+        };
+
+        window.closeModalOnBackdrop = (event, modalId) => {
+            if (event.target.id === modalId) {
+                document.getElementById(modalId).classList.remove('active');
+            }
+        };
+
+        window.switchDashboardTab = (tabName) => {
+            const isOverview = tabName === 'overview';
+            document.getElementById('dash-view-overview').style.display = isOverview ? 'block' : 'none';
+            document.getElementById('dash-view-settings').style.display = isOverview ? 'none' : 'block';
+
+            document.getElementById('tab-overview-btn').classList.toggle('active', isOverview);
+            document.getElementById('tab-settings-btn').classList.toggle('active', !isOverview);
+
+            if (isOverview) {
+                renderDashboardOverview();
+            } else {
+                renderCategorySettings();
+            }
+        };
+
+        window.toggleCycleSelection = (cycleId) => {
+            if (selectedCycleIds.has(cycleId)) {
+                selectedCycleIds.delete(cycleId);
+            } else {
+                selectedCycleIds.add(cycleId);
+            }
+            renderDashboardOverview();
+        };
+
+        window.selectAllCycles = (selectAll) => {
+            if (selectAll) {
+                selectedCycleIds = new Set(appState.cycles.map(c => c.id));
+            } else {
+                selectedCycleIds.clear();
+            }
+            renderDashboardOverview();
+        };
+
+        window.toggleDashCategoryExpand = (catId) => {
+            if (expandedDashCategoryIds.has(catId)) {
+                expandedDashCategoryIds.delete(catId);
+            } else {
+                expandedDashCategoryIds.add(catId);
+            }
+            renderDashboardOverview();
+        };
+
+        function renderDashboardOverview() {
+            const chipsContainer = document.getElementById('dash-cycle-chips');
+            chipsContainer.innerHTML = appState.cycles.map(cycle => {
+                const isSelected = selectedCycleIds.has(cycle.id);
+                return `
+                    <div class="cycle-chip ${isSelected ? 'selected' : ''}" onclick="toggleCycleSelection('${cycle.id}')">
+                        <span>${isSelected ? '☑' : '☐'}</span>
+                        <span>${escapeHtml(cycle.title)}</span>
+                    </div>
+                `;
+            }).join('');
+
+            const statsByCat = {};
+            appState.categories.forEach(cat => { 
+                statsByCat[cat.id] = { total: 0, items: [] }; 
+            });
+
+            let grandTotal = 0;
+
+            appState.cycles.forEach(cycle => {
+                if (!selectedCycleIds.has(cycle.id)) return;
+
+                cycle.expenses.forEach(exp => {
+                    if (exp.children && exp.children.length > 0) {
+                        exp.children.forEach(child => {
+                            const catId = statsByCat.hasOwnProperty(child.categoryId) ? child.categoryId : appState.categories[0]?.id;
+                            statsByCat[catId].total += child.amount;
+                            statsByCat[catId].items.push({
+                                name: child.name || '(Sub-gasto sem nome)',
+                                parentName: exp.name || '(Grupo sem nome)',
+                                cycleTitle: cycle.title,
+                                amount: child.amount
+                            });
+                            grandTotal += child.amount;
+                        });
+                    } else {
+                        const catId = statsByCat.hasOwnProperty(exp.categoryId) ? exp.categoryId : appState.categories[0]?.id;
+                        statsByCat[catId].total += exp.amount;
+                        statsByCat[catId].items.push({
+                            name: exp.name || '(Gasto sem nome)',
+                            parentName: null,
+                            cycleTitle: cycle.title,
+                            amount: exp.amount
+                        });
+                        grandTotal += exp.amount;
+                    }
+                });
+            });
+
+            document.getElementById('dash-total-spent').textContent = `R$ ${grandTotal.toFixed(2).replace('.', ',')}`;
+            document.getElementById('dash-selected-count').textContent = `${selectedCycleIds.size} de ${appState.cycles.length} ciclo(s) selecionado(s)`;
+
+            const sortedCats = [...appState.categories].sort((a, b) => (statsByCat[b.id]?.total || 0) - (statsByCat[a.id]?.total || 0));
+
+            const listEl = document.getElementById('dash-category-list');
+            if (sortedCats.length === 0) {
+                listEl.innerHTML = `<p style="color: var(--text-muted); text-align: center;">Nenhuma categoria cadastrada.</p>`;
+                return;
+            }
+
+            listEl.innerHTML = sortedCats.map(cat => {
+                const catData = statsByCat[cat.id] || { total: 0, items: [] };
+                const value = catData.total;
+                const items = catData.items;
+                const percent = grandTotal > 0 ? ((value / grandTotal) * 100) : 0;
+                const isExpanded = expandedDashCategoryIds.has(cat.id);
+                const hasItems = items.length > 0;
+
+                const arrowIcon = hasItems ? (isExpanded ? '▼' : '▶') : '•';
+
+                let detailsHtml = '';
+                if (isExpanded && hasItems) {
+                    const rowsHtml = items.map(item => `
+                        <tr>
+                            <td>
+                                ${escapeHtml(item.name)}
+                                ${item.parentName ? `<div class="cat-detail-parent">↳ em ${escapeHtml(item.parentName)}</div>` : ''}
+                            </td>
+                            <td class="cat-detail-cycle">${escapeHtml(item.cycleTitle)}</td>
+                            <td class="cat-detail-amount">R$ ${item.amount.toFixed(2).replace('.', ',')}</td>
+                        </tr>
+                    `).join('');
+
+                    detailsHtml = `
+                        <div class="cat-details-panel">
+                            <table class="cat-details-table">
+                                <thead>
+                                    <tr>
+                                        <th>Descrição do Gasto</th>
+                                        <th>Ciclo</th>
+                                        <th>Valor</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${rowsHtml}
+                                </tbody>
+                            </table>
+                        </div>
+                    `;
+                }
+
+                return `
+                    <div class="cat-stat-item">
+                        <div class="cat-stat-header" onclick="${hasItems ? `toggleDashCategoryExpand('${cat.id}')` : ''}" style="${hasItems ? '' : 'cursor: default;'}">
+                            <div class="cat-stat-top">
+                                <span class="cat-badge">
+                                    <span class="cat-arrow">${arrowIcon}</span>
+                                    <span class="cat-dot" style="background-color: ${cat.color};"></span>
+                                    ${escapeHtml(cat.name)}
+                                    <span class="cat-count-tag">${items.length} ${items.length === 1 ? 'item' : 'itens'}</span>
+                                </span>
+                                <span>
+                                    <strong>R$ ${value.toFixed(2).replace('.', ',')}</strong>
+                                    <span style="color: var(--text-muted); font-size: 0.85em; margin-left: 6px;">(${percent.toFixed(1)}%)</span>
+                                </span>
+                            </div>
+                            <div class="cat-bar-bg">
+                                <div class="cat-bar-fill" style="width: ${percent}%; background-color: ${cat.color};"></div>
+                            </div>
+                        </div>
+                        ${detailsHtml}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        /* =========================================
+           CONFIGURAÇÕES: CRUD DE CATEGORIAS
+           ========================================= */
+        function renderCategorySettings() {
+            const container = document.getElementById('settings-category-list');
+            container.innerHTML = appState.categories.map(cat => `
+                <div class="cat-manage-row">
+                    <input type="color" class="color-picker-input" value="${cat.color}" onchange="updateCategoryColor('${cat.id}', this.value)" title="Alterar cor">
+                    <input type="text" value="${escapeHtml(cat.name)}" onchange="updateCategoryName('${cat.id}', this.value)">
+                    <button type="button" class="btn-del-cycle" onclick="deleteCategory('${cat.id}')" title="Excluir Categoria">🗑️ Excluir</button>
+                </div>
+            `).join('');
+        }
+
+        window.createCategory = () => {
+            const nameInput = document.getElementById('new-cat-name');
+            const colorInput = document.getElementById('new-cat-color');
+            const name = nameInput.value.trim();
+
+            if (!name) {
+                alert("Digite um nome para a nova categoria.");
+                return;
+            }
+
+            appState.categories.push({
+                id: 'cat_' + generateId(),
+                name,
+                color: colorInput.value
+            });
+
+            nameInput.value = '';
+            calculateAndRender();
+            renderCategorySettings();
+        };
+
+        window.updateCategoryName = (catId, newName) => {
+            const trimmed = newName.trim();
+            if (!trimmed) {
+                renderCategorySettings();
+                return;
+            }
+            const cat = appState.categories.find(c => c.id === catId);
+            if (cat) {
+                cat.name = trimmed;
+                calculateAndRender();
+            }
+        };
+
+        window.updateCategoryColor = (catId, newColor) => {
+            const cat = appState.categories.find(c => c.id === catId);
+            if (cat) {
+                cat.color = newColor;
+                calculateAndRender();
+            }
+        };
+
+        window.deleteCategory = (catId) => {
+            if (appState.categories.length <= 1) {
+                alert("Você precisa manter pelo menos uma categoria ativa no sistema.");
+                return;
+            }
+
+            if (!confirm("Deseja excluir esta categoria? Os gastos vinculados a ela serão movidos para a primeira categoria disponível.")) {
+                return;
+            }
+
+            appState.categories = appState.categories.filter(c => c.id !== catId);
+            const fallbackId = appState.categories[0].id;
+
+            appState.cycles.forEach(cycle => {
+                cycle.expenses.forEach(exp => {
+                    if (exp.categoryId === catId) exp.categoryId = fallbackId;
+                    exp.children.forEach(ch => {
+                        if (ch.categoryId === catId) ch.categoryId = fallbackId;
+                    });
+                });
+            });
+
+            calculateAndRender();
+            renderCategorySettings();
+        };
+
+        /* =========================================
+           FUNÇÕES DA PLANILHA (EXISTENTES)
+           ========================================= */
+        window.updateMainTitle = (val) => { appState.mainTitle = val; calculateAndRender(); };
+        window.editCycleTitle = (cId, val) => { appState.cycles.find(c => c.id === cId).title = val; calculateAndRender(); };
+        
+        window.toggleCarryOver = (cId, isChecked) => {
+            appState.cycles.find(c => c.id === cId).carryOver = isChecked;
+            calculateAndRender(); 
+        };
+
+        window.toggleExpand = (cId, pId) => {
+            const exp = appState.cycles.find(c => c.id === cId).expenses.find(e => e.id === pId);
+            exp.isExpanded = !exp.isExpanded;
+            calculateAndRender(); 
+        };
+
+        window.editIncomeName = (cId, iId, val) => { appState.cycles.find(c => c.id === cId).incomes.find(i => i.id === iId).name = val; calculateAndRender(); };
+        window.editIncomeAmount = (cId, iId, val) => { appState.cycles.find(c => c.id === cId).incomes.find(i => i.id === iId).amount = parseFloat(val) || 0; calculateAndRender(); };
+        window.addIncome = (cId) => { appState.cycles.find(c => c.id === cId).incomes.push({ id: generateId(), name: "", amount: 0 }); calculateAndRender(); };
+        window.delIncome = (cId, iId) => { const cycle = appState.cycles.find(c => c.id === cId); cycle.incomes = cycle.incomes.filter(i => i.id !== iId); calculateAndRender(); };
+        window.moveIncome = (cId, iId, direction) => {
+            const cycle = appState.cycles.find(c => c.id === cId);
+            const idx = cycle.incomes.findIndex(i => i.id === iId);
+            if (direction === 'up' && idx > 0) [cycle.incomes[idx - 1], cycle.incomes[idx]] = [cycle.incomes[idx], cycle.incomes[idx - 1]];
+            else if (direction === 'down' && idx < cycle.incomes.length - 1) [cycle.incomes[idx], cycle.incomes[idx + 1]] = [cycle.incomes[idx + 1], cycle.incomes[idx]];
+            calculateAndRender();
+        };
+
+        window.editExpenseName = (cId, eId, val) => { appState.cycles.find(c => c.id === cId).expenses.find(e => e.id === eId).name = val; calculateAndRender(); };
+        window.editExpenseAmount = (cId, eId, val) => { 
+            const exp = appState.cycles.find(c => c.id === cId).expenses.find(e => e.id === eId);
+            if (!exp.children || exp.children.length === 0) {
+                exp.amount = parseFloat(val) || 0; 
+                calculateAndRender();
+            }
+        };
+        window.delExpense = (cId, eId) => { 
+            openGearMenuId = null;
+            const cycle = appState.cycles.find(c => c.id === cId); 
+            cycle.expenses = cycle.expenses.filter(e => e.id !== eId); 
+            calculateAndRender(); 
+        };
+        window.moveExpense = (cId, eId, direction) => {
+            const cycle = appState.cycles.find(c => c.id === cId);
+            const idx = cycle.expenses.findIndex(e => e.id === eId);
+            if (direction === 'up' && idx > 0) [cycle.expenses[idx - 1], cycle.expenses[idx]] = [cycle.expenses[idx], cycle.expenses[idx - 1]];
+            else if (direction === 'down' && idx < cycle.expenses.length - 1) [cycle.expenses[idx], cycle.expenses[idx + 1]] = [cycle.expenses[idx + 1], cycle.expenses[idx]];
+            calculateAndRender(); 
+        };
+
+        window.editChildExpenseName = (cId, pId, childId, val) => {
+            const cycle = appState.cycles.find(c => c.id === cId);
+            const parent = cycle.expenses.find(e => e.id === pId);
+            const child = parent.children.find(c => c.id === childId);
+            child.name = val;
+            calculateAndRender();
+        };
+        window.editChildExpenseAmount = (cId, pId, childId, val) => {
+            const cycle = appState.cycles.find(c => c.id === cId);
+            const parent = cycle.expenses.find(e => e.id === pId);
+            const child = parent.children.find(c => c.id === childId);
+            child.amount = parseFloat(val) || 0;
+            calculateAndRender();
+        };
+        window.delChildExpense = (cId, pId, childId) => {
+            openGearMenuId = null;
+            const cycle = appState.cycles.find(c => c.id === cId);
+            const parent = cycle.expenses.find(e => e.id === pId);
+            parent.children = parent.children.filter(c => c.id !== childId);
+            calculateAndRender(); 
+        };
+
+        window.addCycle = () => {
+            const newId = generateId();
+            appState.cycles.push({ 
+                id: newId, title: "Novo Ciclo", carryOver: true,
+                incomes: [{ id: generateId(), name: "", amount: 0 }], 
+                expenses: [] 
+            });
+            selectedCycleIds.add(newId);
+            calculateAndRender();
+            setTimeout(() => { const board = document.getElementById('board'); board.scrollTo({ left: board.scrollWidth, behavior: 'smooth' }); }, 50);
+        };
+
+        window.delCycle = (cId) => {
+            if(confirm("Tem certeza que deseja apagar esta coluna inteira?")) { 
+                appState.cycles = appState.cycles.filter(c => c.id !== cId); 
+                selectedCycleIds.delete(cId);
+                calculateAndRender(); 
+            }
+        };
+
+        window.resetSimulator = () => {
+            if(confirm("Deseja limpar todos os dados e começar do zero?")) {
+                localStorage.removeItem('econSim_excel');
+                const initialId = generateId();
+                appState = { 
+                    mainTitle: "Nova Simulação", 
+                    categories: JSON.parse(JSON.stringify(DEFAULT_CATEGORIES)),
+                    cycles: [{ id: initialId, title: "Mês 1", carryOver: true, incomes: [], expenses: [] }] 
+                };
+                selectedCycleIds = new Set([initialId]);
+                expandedDashCategoryIds.clear();
+                openGearMenuId = null;
+                document.getElementById('main-title').value = appState.mainTitle;
+                calculateAndRender();
+            }
+        };
+
+        init();
+    </script>
+</body>
+</html>

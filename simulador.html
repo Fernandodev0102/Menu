@@ -363,8 +363,8 @@
                                 <div class="row-actions actions-income">
                                     <button class="btn-action btn-del-row" onclick="delIncome('${cycle.id}', '${inc.id}')" title="Excluir">🗑️</button>
                                     <div class="arrows-stack">
-                                        <button class="btn-action btn-arrow" onclick="moveIncome('${cycle.id}', '${inc.id}', 'up')">▲</button>
-                                        <button class="btn-action btn-arrow" onclick="moveIncome('${cycle.id}', '${inc.id}', 'down')">▼</button>
+                                        <button class="btn-action btn-arrow" onc('${cycle.id}', '${inc.id}', 'up')">▲</button>
+                                        <button class="btn-action btn-arrow" onc('${cycle.id}', '${inc.id}', 'down')">▼</button>
                                     </div>
                                 </div>
                                 <input type="text" class="income-input" placeholder="Nova Entrada" value="${inc.name}" onclick="this.select()" onchange="editIncomeName('${cycle.id}', '${inc.id}', this.value)">
@@ -505,7 +505,7 @@
         window.editIncomeAmount = (cId, iId, val) => { appState.cycles.find(c => c.id === cId).incomes.find(i => i.id === iId).amount = parseFloat(val) || 0; calculateAndRender(); };
         window.addIncome = (cId) => { appState.cycles.find(c => c.id === cId).incomes.push({ id: generateId(), name: "", amount: 0 }); calculateAndRender(); };
         window.delIncome = (cId, iId) => { const cycle = appState.cycles.find(c => c.id === cId); cycle.incomes = cycle.incomes.filter(i => i.id !== iId); calculateAndRender(); };
-        window.moveIncome = (cId, iId, direction) => {
+        w = (cId, iId, direction) => {
             const cycle = appState.cycles.find(c => c.id === cId);
             const idx = cycle.incomes.findIndex(i => i.id === iId);
             if (direction === 'up' && idx > 0) [cycle.incomes[idx - 1], cycle.incomes[idx]] = [cycle.incomes[idx], cycle.incomes[idx - 1]];
